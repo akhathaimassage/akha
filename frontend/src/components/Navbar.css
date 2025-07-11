@@ -1,0 +1,50 @@
+.admin-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #2c3e50;
+  padding: 0 20px;
+  color: white;
+  height: 60px;
+}
+
+.nav-logo {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+  gap: 20px;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.nav-links a:hover {
+  background-color: #34495e;
+}
+
+/* นี่คือสไตล์สำหรับลิงก์ของหน้าที่กำลังเปิดอยู่ */
+.nav-links a.active {
+  background-color: #1abc9c;
+  font-weight: bold;
+}
+
+.nav-actions a {
+  color: #ecf0f1;
+  text-decoration: none;
+  font-size: 0.9em;
+}
+
+.nav-actions a:hover {
+  text-decoration: underline;
+}

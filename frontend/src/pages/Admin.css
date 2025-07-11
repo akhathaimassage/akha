@@ -1,0 +1,211 @@
+/*
+ * Global Stylesheet for Admin Pages
+ * ใช้ CSS Variables ที่กำหนดไว้ใน /src/index.css
+*/
+
+/* -------------------------
+ * Layout & Cards
+ * ------------------------- */
+.admin-card {
+  background-color: var(--text-light);
+  padding: 25px 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-bottom: 25px;
+  overflow: hidden; /* เพิ่มเพื่อให้ border-radius ของตารางข้างในแสดงผลสวยงาม */
+}
+
+.admin-card h1, 
+.admin-card h2, 
+.admin-card h3 {
+    color: var(--text-dark);
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+}
+
+/* -------------------------
+ * Tables
+ * ------------------------- */
+.admin-table {
+  width: 100%;
+  border-collapse: separate; /* ★ เปลี่ยน: เพื่อให้มุมโค้งมนทำงานได้ */
+  border-spacing: 0;
+}
+
+.admin-table th, 
+.admin-table td {
+  border: 1px solid var(--border-color);
+  padding: 12px 15px;
+  text-align: left;
+  vertical-align: middle;
+  border-top: none;
+  border-left: none;
+}
+.admin-table th:first-child,
+.admin-table td:first-child {
+    border-left: 1px solid var(--border-color);
+}
+.admin-table tr:first-child th {
+    border-top: 1px solid var(--border-color);
+}
+
+
+.admin-table th {
+  background-color: var(--primary-green); /* ★ เปลี่ยน: ใช้ CSS Variable เพื่อให้เข้ากับธีม */
+  color: var(--text-light); /* ★ เพิ่ม: ทำให้ตัวอักษรสีขาว อ่านง่ายขึ้น */
+  font-weight: 600;
+}
+
+/* ★ เพิ่ม: ทำให้มุมตารางโค้งมน */
+.admin-table th:first-child { border-top-left-radius: 8px; }
+.admin-table th:last-child { border-top-right-radius: 8px; }
+.admin-table tr:last-child td:first-child { border-bottom-left-radius: 8px; }
+.admin-table tr:last-child td:last-child { border-bottom-right-radius: 8px; }
+
+
+.admin-table tr.deactivated {
+    color: #999;
+    text-decoration: line-through;
+    background-color: #fcfcfc;
+}
+
+/* -------------------------
+ * Buttons
+ * ------------------------- */
+.btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 5px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn-add { background-color: var(--primary-green); }
+.btn-edit { background-color: var(--accent-gold); color: var(--text-dark); }
+.btn-delete { background-color: var(--danger-color); }
+.btn-cancel { background-color: #6c757d; }
+
+/* -------------------------
+ * Forms & Filters
+ * ------------------------- */
+.admin-form, .filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+}
+.filter-controls {
+    margin-bottom: 20px;
+}
+
+.admin-form-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-size: 1em;
+}
+
+.admin-form-input:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 2px rgba(54, 106, 38, 0.2);
+}
+
+.admin-form .btn {
+    flex-shrink: 0;
+}
+
+/* -------------------------
+ * Status Toggles
+ * ------------------------- */
+.status-toggle {
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    display: inline-block;
+}
+
+.status-toggle.active {
+    background-color: var(--primary-green);
+}
+
+.status-toggle:not(.active) {
+    background-color: var(--danger-color);
+}
+
+
+
+/* --- Responsive Rules for Admin Tables --- */
+/* กฎนี้จะทำงานเมื่อหน้าจอกว้างไม่เกิน 768px */
+@media (max-width: 768px) {
+
+
+   /* --- Responsive Table (Card View) --- */
+  .admin-table thead {
+    display: none; /* Hide table headers on mobile */
+  }
+
+  .admin-table, .admin-table tbody, .admin-table tr, .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table tr {
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .admin-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 5px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: right; /* Default align data to the right */
+  }
+
+  .admin-table tr td:last-child {
+    border-bottom: none;
+  }
+
+  .admin-table td:before {
+    content: attr(data-label);
+    font-weight: bold;
+    text-align: left; /* Always align the label to the left */
+    padding-right: 15px;
+    color: var(--text-dark);
+  }
+
+  /* --- Styles for specific cell alignments on mobile --- */
+  .customer-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  
+  .admin-table td[data-label="ID"],
+  .admin-table td[data-label="Name"],
+  .admin-table td[data-label="Status"],
+  .admin-table td[data-label="Username"] {
+    justify-content: flex-start; /* Override to align left */
+    text-align: left;
+  }
+
+}

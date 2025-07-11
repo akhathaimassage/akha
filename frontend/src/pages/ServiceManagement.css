@@ -1,0 +1,103 @@
+.management-container {
+    padding: 20px;
+    max-width: 900px;
+    margin: 40px auto;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.management-container h1 {
+    text-align: center;
+    color: #333;
+}
+
+.management-form {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.management-form h3 {
+    margin: 0 0 10px 0;
+    text-align: center;
+}
+
+.management-form input {
+    padding: 10px;
+    border: 1px solid #afafaf;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.form-buttons button {
+    flex-grow: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    background-color: #47db34;
+}
+
+.form-buttons .cancel-btn {
+    background-color: #6c757d;
+}
+
+.management-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.management-table th, .management-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+    vertical-align: middle;
+    
+}
+
+.management-table th {
+    background-color: #68c928;
+    
+}
+
+.management-table tr.deactivated {
+    background-color: #fff0f0;
+    color: #999999;
+    text-decoration: line-through;
+}
+
+.status-toggle {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.status-toggle.active { background-color: #28a745; }
+.status-toggle:not(.active) { background-color: #dc3545; }
+
+.actions .edit-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    background-color: #f5d883;
+    color: #212529;
+}

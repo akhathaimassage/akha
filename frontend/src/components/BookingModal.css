@@ -1,0 +1,229 @@
+.booking-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.booking-modal-card {
+  background-image: url('/images/body-background.png');
+  background-size: cover;
+  width: 100%;
+  max-width: 850px; /* ลดความกว้างสูงสุดเล็กน้อยเพื่อให้พอดีกับจอมากขึ้น */
+  max-height: 95vh;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card-header-image {
+  background-image: url('/images/leaf-background.png');
+  background-size: cover;
+  background-position: center;
+  padding: 120px 50px 80px; /* ลด Padding บน-ล่าง */
+  position: relative;
+  text-align: center;
+}
+
+.logo {
+  position: absolute;
+  top: 20px;
+  left: 25px;
+  height: 160px; /* ลดขนาดโลโก้ */
+}
+
+.close-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0,0,0,0.3);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 22px;
+  color: white;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.close-button:hover {
+  background-color: rgba(0,0,0,0.5);
+}
+
+.form-header {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+}
+
+.form-header h1 {
+  font-size: 42px;
+  margin: 5px;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.form-header .subtitle {
+  display: inline-block;
+  background-color: var(--accent-gold);
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 18px;
+  color: var(--primary-green);
+  font-weight: bold;
+}
+
+.card-body {
+  padding: 30px 40px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.booking-form {
+  display: flex;
+  flex-direction: row;
+  gap: 40px;
+}
+
+.form-column {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 12px; /* กำหนดระยะห่างที่แน่นอน */
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-dark);
+}
+
+input[type="text"],
+input[type="email"],
+.PhoneInputInput,
+select {
+  width: 100%;
+  padding: 14px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 50px;
+  background-color: #fff;
+  font-size: 15px;
+  font-family: 'Poppins', sans-serif;
+  box-sizing: border-box;
+  color: var(--text-dark);
+}
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24' fill='%23366a26'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 20px center;
+}
+
+input:focus,
+select:focus,
+.PhoneInputInput:focus {
+  outline: none;
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(54, 106, 38, 0.2);
+}
+
+.submit-button {
+  background: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 80%;
+  margin-top: 10px;
+}
+
+.submit-button:disabled {
+  background: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .booking-form {
+    flex-direction: column;
+    gap: 0;
+  }
+  .form-group {
+      margin-bottom: 20px;
+  }
+  .card-body {
+    padding: 20px;
+  }
+  .card-header-image {
+    padding: 40px 20px 70px;
+  }
+  .form-header h1 {
+    font-size: 32px;
+  }
+  .form-header .subtitle {
+    font-size: 16px;
+  }
+  .logo {
+    height: 80px;
+    top: 15px;
+    left: 15px;
+  }
+  .form-header {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+}
+
+.form-header h1 {
+  font-size: 24px;
+  padding-top: 10px;
+  margin: 5px;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.form-header .subtitle {
+  display: inline-block;
+  background-color: var(--accent-gold);
+  border: none;
+  padding-top: 10px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--primary-green);
+  font-weight: bold;
+}
+}
+

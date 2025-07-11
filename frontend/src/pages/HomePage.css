@@ -1,0 +1,428 @@
+/* =================================
+   Global Styles for this Page
+   ================================= */
+.homepage-container {
+  background-color: #ffffff;
+  user-select: none;
+}
+
+.page-section {
+  padding: 80px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+    background-color: #f9f9f9fc;
+}
+
+.section-title {
+  font-size: 2.5em;
+  margin-top: 0;
+  margin-bottom: 50px;
+  color: var(--text-dark);
+  text-align: center;
+}
+
+/* =================================
+   Header & Navigation
+   ================================= */
+.main-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 100;
+}
+
+.login-button-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.login-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid white;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: white;
+}
+
+.management-button {
+  background: var(--accent-gold);
+  color: var(--primary-green);
+  padding: 8px 15px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* =================================
+   Hero Section
+   ================================= */
+.hero-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 40px;
+  min-height: 60vh;
+  background-color: #597567;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+  align-items: center;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.hero-image-card img {
+  width: 100%;
+  border-radius: 12px;
+
+}
+
+.hero-text-card {
+  text-align: left;
+}
+
+.hero-text-card h1 {
+  font-size: 3.2em;
+  font-weight: 500;
+  color: var(--text-light);
+  margin: 0 0 0.5em 0;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+.hero-text-card p {
+  font-size: 1.2em;
+  color: #f0f0f0;
+  line-height: 1.6;
+  margin: 0 0 1.5em 0;
+}
+
+.hero-contact-line {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* ระยะห่างระหว่าง ข้อความ-ไอคอน-เบอร์โทร */
+    margin: 30px 0;
+}
+
+.hero-contact-line span {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #00470a;
+}
+
+.phone-icon {
+    width: 20px;
+    height: 20px;
+    stroke: #ffffff; /* สีของไอคอน */
+}
+
+.hero-contact-line .contact-phone-number {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--accent-gold);
+    text-decoration: none;
+}
+
+.hero-contact-line .contact-phone-number:hover {
+    text-decoration: underline;
+}
+
+.hero-cta-button {
+  display: inline-block;
+ background: rgba(255, 255, 255, 0);
+  border: 1px solid white;
+  padding: 15px 35px;
+  text-decoration: none;
+  border-radius: 50px;
+  font-weight: bold;
+  color: #ffffff;
+  font-size: 1.1em;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.hero-cta-button:hover {
+  transform: translateY(-3px);
+  background-color: #4a8a3a;
+}
+
+
+/* =================================
+   About Section
+   ================================= */
+.about-section {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+}
+
+.about-content h2{
+  text-align: left;
+  ;
+}
+.about-content, .about-image {
+  flex: 1;
+}
+
+.about-image img {
+  width: 100%;
+  max-width: 500px;
+  border-radius: 30px;
+}
+
+
+/* =================================
+   Prices Section
+   ================================= */
+
+/* --- Prices Section --- */
+#prices {
+    background-color: #f9faf6; /* ★ ใส่สีพื้นหลังที่นี่ */
+}
+   
+.prices-grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+
+}
+
+.section-title {
+  color: #254222; 
+}
+
+.price-card-image {
+  grid-column: span 1;
+  grid-row: span 3;
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.price-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.price-card-service {
+  background-color: #ffffff;
+  border-radius: 22px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  transition: all 0.3s;
+}
+
+.price-card-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid #ece5bc;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+}
+
+.card-icon {
+  width: 60px;
+  height: 60px;
+  color: #597567;
+}
+
+.price-card-header h3 {
+  margin: 0;
+  color: #597567;
+  font-size: 1.2em;
+  
+}
+
+.price-card-body {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.price-card-body li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+}
+
+.price-dots {
+  flex-grow: 1;
+  border-bottom: 0px dotted #ccc;
+  margin: 0 10px;
+}
+
+
+.price-card-service:hover {
+  background-color: #597567;
+  color: var(--text-light);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(48, 48, 48, 0.3);
+}
+
+.price-card-service:hover h3 {
+  color: var(--text-light);
+}
+
+/* =================================
+   Contact Section
+   ================================= */
+/* --- Contact Section (3-Column Layout) --- */
+.contact-grid-3-col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Creates 3 equal columns */
+    gap: 40px;
+    text-align: left;
+}
+
+.contact-column h3 {
+    color: var(--primary-green);
+    border-bottom: 2px solid var(--accent-gold);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    margin-top: 0;
+}
+
+.contact-column a {
+  color: #597567;
+
+}
+
+.contact-details a, .social-links a {
+    color: var(--primary-green);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+.contact-details a:hover, .social-links a:hover {
+    text-decoration: underline;
+
+}
+
+.social-links {
+    margin: 20px 0;
+}
+.social-links img {
+    width: 36px;
+    height: 36px;
+}
+
+.qr-code-section {
+    margin-top: 20px;
+}
+.qr-code-section h4 {
+    margin-bottom: 10px;
+    color: var(--text-dark);
+}
+.qr-code-section img {
+    width: 180px;
+    height: 180px;
+    border: 0px solid #ddd;
+    padding: 5px;
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+.qr-code-section a:hover img {
+    transform: scale(1.05);
+}
+
+.contact-map {
+    width: 100%;
+    height: 100%;
+}
+
+/* --- Responsive for Contact Section --- */
+@media (max-width: 992px) {
+    .contact-grid-3-col {
+        grid-template-columns: 1fr; /* Stacks to a single column on smaller screens */
+    }
+}
+
+/* =================================
+   Responsive Rules
+   ================================= */
+@media (max-width: 992px) {
+  .prices-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .price-card-image {
+    grid-column: span 2;
+    grid-row: span 1;
+    height: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-grid,
+  .about-section,
+  .contact-grid {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+  .hero-text-card {
+    text-align: center;
+    order: -1;
+  }
+  .hero-text-card h1 {
+    font-size: 2.5em;
+  }
+  .hero-text-card p {
+    font-size: 1.1em;
+  }
+
+  .hero-contact-line {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* ระยะห่างระหว่าง ข้อความ-ไอคอน-เบอร์โทร */
+    margin: 30px 0;
+}
+
+.hero-contact-line span {
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #00470a;
+}
+
+ .hero-contact-line .contact-phone-number {
+        font-size: 0.8em; /* ลดขนาดเบอร์โทร */
+    }
+
+.phone-icon {
+    width: 10px;
+    height: 10px;
+    stroke: #ffffff; /* สีของไอคอน */
+}
+}
+
+@media (max-width: 600px) {
+  .prices-grid-container {
+    grid-template-columns: 1fr;
+  }
+  .price-card-image {
+    grid-column: span 1;
+    height: 250px;
+  }
+}
+
+/* --- Responsive for Contact Section --- */
+@media (max-width: 992px) {
+    .contact-grid-3-col {
+        grid-template-columns: 1fr; /* Stacks to a single column on smaller screens */
+    }
+}

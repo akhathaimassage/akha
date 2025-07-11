@@ -1,0 +1,47 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px; /* สร้างระยะห่าง บน-ล่าง 40px และ ซ้าย-ขวา 20px */
+  box-sizing: border-box; /* ทำให้ padding ถูกคำนวณรวมในขนาด 100% */
+  background-clip: padding-box;
+}
+
+.modal-content {
+  background-color: var(--background-light); /* ★ กำหนดสีพื้นหลังที่นี่ */
+  border-radius: 20px;
+  width: 100%; /* ★ แก้ไข: ให้ความกว้างเต็ม container */
+  max-width: 950px; /* ★ เพิ่ม: ความกว้างสูงสุดสำหรับจอ Desktop */
+  max-height: calc(100vh - 40px); /* ★ แก้ไข: ความสูงสูงสุด */
+  overflow-y: auto; /* ★ สำคัญ: ทำให้ scroll ได้ */
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  position: relative;
+  display: flex; /* ★ เพิ่ม: เพื่อให้ header และ body ทำงานร่วมกันได้ดี */
+  flex-direction: column; /* ★ เพิ่ม */
+
+}
+
+.modal-close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

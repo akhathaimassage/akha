@@ -1,0 +1,58 @@
+/* frontend/src/pages/AdminSchedule.css */
+
+/* --- จัดให้ Date Picker อยู่ตรงกลาง --- */
+.datepicker-container {
+  display: flex;
+  justify-content: center; /* คำสั่งนี้จะทำให้สิ่งที่อยู่ข้างในไปอยู่ตรงกลางแนวนอน */
+  margin-top: 10px;
+}
+
+/* --- ปรับสไตล์ของช่อง Input ใน Date Picker --- */
+.datepicker-container .react-datepicker-wrapper input {
+  color: #47db34; /* ★ ทำให้ตัวหนังสือเป็นสีฟ้า */
+  font-weight: bold; /* ทำให้ตัวหนังสือหนาขึ้น */
+  font-size: 1.1em;  /* เพิ่มขนาดตัวหนังสือเล็กน้อย */
+  text-align: center; /* ทำให้ตัวหนังสืออยู่ตรงกลางช่อง */
+  
+  /* ปรับหน้าตาให้สวยงาม */
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 25px; /* ทำให้ขอบโค้งมน */
+  padding: 10px 20px;
+  cursor: pointer;
+  outline: none; /* เอาเส้นขอบสีฟ้าตอน focus ออก */
+  transition: box-shadow 0.2s;
+}
+
+/* เพิ่มเงาเล็กน้อยเมื่อนำเมาส์ไปชี้ */
+.datepicker-container .react-datepicker-wrapper input:hover {
+  box-shadow: 0 0 8px rgba(52, 152, 219, 0.4);
+}
+
+/* สไตล์สำหรับครอบ header ทั้งหมด */
+.page-container {
+  padding: 20px;
+}
+.page-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.divider {
+  margin: 20px 0;
+  border: none;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* สไตล์สำหรับ toggle switch */
+.view-toggle {
+  margin-top: 15px;
+  color: #5c5c5c;
+  font-size: 14px;
+}
+
+.view-toggle label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

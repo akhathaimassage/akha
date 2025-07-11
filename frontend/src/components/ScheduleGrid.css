@@ -1,0 +1,104 @@
+/* frontend/src/components/ScheduleGrid.css (เวอร์ชัน Final) */
+
+.schedule-grid-container {
+  overflow-x: auto; /* ทำให้เลื่อนซ้าย-ขวาได้ถ้ามีพนักงานเยอะ */
+  border: 1px solid #f7f7f7;
+  border-radius: 10px;  /* กำหนดความโค้งของมุม (เลขยิ่งมาก ยิ่งโค้งมาก) */
+  overflow: hidden;       /* ซ่อนส่วนเกินที่ล้นออกมาจากมุมที่โค้ง */
+}
+
+.schedule-grid {
+  display: grid;
+  min-width: 400px; /* กำหนดความกว้างขั้นต่ำ */
+}
+
+.grid-header, .time-label, .grid-cell {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #f7f7f7;
+  border-right: 1px solid #f7f7f7;
+}
+
+.grid-header {
+  background-color: #68c928;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+  z-index: 10px;
+}
+
+.time-label {
+  background-color: #b0f1a8;
+  font-size: 0.8em;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  height: 40px; /* กำหนดความสูงของแต่ละช่องให้ตายตัว */
+  box-sizing: border-box;
+}
+
+.grid-cell {
+  height: 40px; /* กำหนดความสูงของแต่ละช่องให้ตายตัว */
+  box-sizing: border-box;
+}
+
+.booking-block {
+  background-color: #30c77b;
+  border: 0cqmax solid #008fb3;
+  border-radius: 5px;
+  padding: 5px;
+  margin: 1px;
+  margin-bottom: 5px;
+  color: white;
+  font-size: 0.8em;
+  overflow: hidden;
+  padding-top: 0px;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  line-height: 0.1;
+  
+}
+
+.booking-block p,
+.booking-block strong {
+  margin: 6px 0; /* เพิ่มระยะห่างบน-ล่างให้กับทุกบรรทัด */
+  padding: 0;
+  display: block; /* ทำให้แต่ละอันขึ้นบรรทัดใหม่เสมอ */
+  width: 100%;
+}
+
+.booking-block strong {
+  font-size: 0.8em; /* ทำให้ชื่อบริการเด่นขึ้นเล็กน้อย */
+}
+
+/* --- Responsive Rules for Mobile --- */
+/* กฎนี้จะทำงานเมื่อหน้าจอกว้างไม่เกิน 768px */
+@media (max-width: 768px) {
+  .schedule-grid-container {
+    border: none; /* เอากรอบนอกออก */
+  }
+
+  .schedule-grid {
+    /* หยุดการทำงานแบบ Grid และเปลี่ยนเป็น Block ธรรมดา */
+    display: block;
+  }
+
+  .grid-header, .time-label, .grid-cell {
+    /* ซ่อน Header และแกนเวลาทั้งหมดในมือถือ */
+    display: none;
+  }
+
+  .booking-block {
+    /* ทำให้บล็อกการจองแสดงผลเป็นรายการธรรมดา */
+    position: static; /* ยกเลิกการกำหนดตำแหน่งแบบเป๊ะๆ */
+    width: auto;      /* ทำให้ความกว้างเต็ม 100% ของ container */
+    margin: 10px 5px; /* เพิ่มระยะห่างบน-ล่าง */
+  }
+
+
+  
+}

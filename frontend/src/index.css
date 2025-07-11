@@ -1,0 +1,42 @@
+/* frontend/src/index.css (เวอร์ชันปรับปรุงใหม่) */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap');
+
+/* 1. กำหนดชุดสีหลักของแบรนด์เราที่นี่ */
+:root {
+  --primary-green: #366a26;
+  --accent-gold: #e4cd87;
+  --background-light: #f9f7f3;
+  --background-dark: #3e4444;
+  --text-dark: #333333;
+  --text-light: #ffffff;
+  --border-color: #d1d5db;
+
+  /* สีสำหรับสถานะต่างๆ */
+  --success-color: #2ecc71;
+  --danger-color: #e74c3c;
+  --warning-color: #f1c40f;
+  --info-color: #3498db;
+}
+
+/* 2. ตั้งค่าพื้นฐานสำหรับทั้งหน้าเว็บ */
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif; /* <-- ใช้ฟอนต์ Poppins ที่ import มา */
+  background-color: var(--background-dark); /* <-- กำหนดพื้นหลังหลักเป็นสีเทาเข้ม */
+  color: var(--text-dark); /* <-- กำหนดสีตัวอักษรหลักเป็นสีเข้ม */
+  
+  /* การตั้งค่าเพื่อให้ฟอนต์แสดงผลสวยงาม */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* เราจะลบสไตล์ของ h1, button, a ทั่วไปออกไปจากไฟล์นี้
+  เพื่อให้เราสามารถควบคุมสไตล์ของแต่ละ Component ได้อย่างอิสระในไฟล์ CSS ของมันเอง
+  เช่น ปุ่มในหน้าจอง ก็จะมีสไตล์ที่ต่างจากปุ่มในหน้าแอดมิน
+*/
+
+html {
+  scroll-behavior: smooth;
+}
