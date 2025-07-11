@@ -1,17 +1,14 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-// สร้าง Connection Pool เพื่อการเชื่อมต่อที่มีประสิทธิภาพ
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+const pool = new Pool({
+  // ใช้วิธีนี้จะง่ายที่สุด โดยการนำ Internal Connection URL ทั้งหมดจาก Render มาใส่
+  connectionString: process.env.DB_INTERNAL_URL, 
+  // บรรทัดด้านล่างนี้สำคัญมาก สำหรับการเชื่อมต่อกับฐานข้อมูลบนคลาวด์
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
-
 // ตรวจสอบการเชื่อมต่อครั้งแรก
 pool.getConnection()
     .then(connection => {
