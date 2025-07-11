@@ -1,16 +1,17 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// สร้าง Pool การเชื่อมต่อสำหรับ PostgreSQL
 const pool = new Pool({
+  // ใช้ Internal Connection URL ที่ตั้งค่าไว้ใน Environment
   connectionString: process.env.DB_INTERNAL_URL, 
+  
+  // ★★★ บรรทัดนี้สำคัญที่สุดสำหรับแก้ปัญหา SSL ★★★
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-// ส่งออก (export) object ที่มีเมธอดที่จำเป็น
-// เพื่อให้ server.js เดิมของคุณยังทำงานได้เหมือนเดิม
+// ส่งออก (export) object เพื่อให้ server.js เดิมทำงานได้
 module.exports = {
     query: (text, params) => pool.query(text, params),
     getConnection: () => pool.connect()
