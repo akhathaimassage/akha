@@ -3,9 +3,14 @@ const cors = require('cors');
 require('dotenv').config();
 const db = require('./db');
 const dayjs = require('dayjs');
-const bcrypt = require('bcryptjs'); // แนะนำให้ใช้ bcryptjs เพื่อความแน่นอน
+const utc = require('dayjs/plugin/utc'); // ★ เพิ่มบรรทัดนี้
+const timezone = require('dayjs/plugin/timezone'); // ★ เพิ่มบรรทัดนี้
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+
+dayjs.extend(utc); // ★ เพิ่มบรรทัดนี้
+dayjs.extend(timezone); // ★ เพิ่มบรรทัดนี้
 
 const saltRounds = 10;
 const app = express();
@@ -83,14 +88,20 @@ app.get('/api/availability', async (req, res) => {
         const existingBookings = bookingsResult.rows;
 
         const availableSlots = [];
-        let slotTime = dayjs(`${date} ${workingHours.start}`);
-        const endTime = dayjs(`${date} ${workingHours.end}`);
+        // ★ แก้ไขตรงนี้: กำหนด Timezone ให้ถูกต้อง
+        const germanTimezone = "Europe/Berlin";
+        let slotTime = dayjs.tz(`${date} ${workingHours.start}`, germanTimezone);
+        const endTime = dayjs.tz(`${date} ${workingHours.end}`, germanTimezone);
         const interval = 30;
 
         while (slotTime.isBefore(endTime)) {
             const potentialEndTime = slotTime.add(durationMinutes, 'minute');
             if (potentialEndTime.isAfter(endTime)) break;
-            const isOverlapping = existingBookings.some(booking => slotTime.isBefore(dayjs(booking.end_datetime)) && potentialEndTime.isAfter(dayjs(booking.start_datetime)));
+            const isOverlapping = existingBookings.some(booking => {
+                const bookingStart = dayjs(booking.start_datetime);
+                const bookingEnd = dayjs(booking.end_datetime);
+                return slotTime.isBefore(bookingEnd) && potentialEndTime.isAfter(bookingStart);
+            });
             if (!isOverlapping) availableSlots.push(slotTime.format('HH:mm'));
             slotTime = slotTime.add(interval, 'minute');
         }
@@ -114,10 +125,15 @@ app.post('/api/bookings', async (req, res) => {
         if (servicesResult.rows.length === 0) throw new Error('Service not found.');
         
         const { name: serviceName, duration_minutes: durationMinutes, price } = servicesResult.rows[0];
-        const startDateTime = dayjs(`${date} ${time}`);
+        
+        // ★ แก้ไขตรงนี้: กำหนด Timezone ให้ถูกต้อง
+        const germanTimezone = "Europe/Berlin";
+        const startDateTime = dayjs.tz(`${date} ${time}`, germanTimezone);
         const endDateTime = startDateTime.add(durationMinutes, 'minute');
-        const startDateTimeForDB = startDateTime.format('YYYY-MM-DD HH:mm:ss');
-        const endDateTimeForDB = endDateTime.format('YYYY-MM-DD HH:mm:ss');
+
+        // แปลงเป็น UTC เพื่อบันทึกลง DB
+        const startDateTimeForDB = startDateTime.utc().format('YYYY-MM-DD HH:mm:ss');
+        const endDateTimeForDB = endDateTime.utc().format('YYYY-MM-DD HH:mm:ss');
 
         const existingBookingsResult = await connection.query('SELECT id FROM bookings WHERE therapist_id = $1 AND status != $2 AND ($3 < end_datetime AND $4 > start_datetime) FOR UPDATE', [therapistId, 'cancelled', startDateTimeForDB, endDateTimeForDB]);
         if (existingBookingsResult.rows.length > 0) {
