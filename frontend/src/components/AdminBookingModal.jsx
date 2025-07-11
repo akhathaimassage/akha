@@ -4,7 +4,7 @@ import TherapistSelector from './TherapistSelector';
 import DateTimePicker from './DateTimePicker';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import './BookingModal.css'; // ใช้สไตล์เดียวกับ BookingModal ปกติ
+import './BookingModal.css';
 import dayjs from 'dayjs';
 import { authFetch } from '../api/authFetch';
 
@@ -23,7 +23,6 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
     const [customerPhone, setCustomerPhone] = useState();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ทำให้ Form Valid แม้ไม่มีอีเมล
     const isFormValid = useMemo(() => {
         return (
             customerName.trim() !== '' &&
@@ -57,35 +56,37 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
         }
     }, [isOpen]);
     
-        useEffect(() => { 
-            if (selectedService && groupedServices[selectedService]) { 
-                setAvailableDurations(groupedServices[selectedService]); 
-            } else { 
-                setAvailableDurations([]); 
-            } 
-            setSelectedDurationId(''); 
-        }, [selectedService, groupedServices]);
+    useEffect(() => { 
+        if (selectedService && groupedServices[selectedService]) { 
+            setAvailableDurations(groupedServices[selectedService]); 
+        } else { 
+            setAvailableDurations([]); 
+        } 
+        setSelectedDurationId(''); 
+    }, [selectedService, groupedServices]);
     
-        useEffect(() => {
-            if (!selectedDurationId || !selectedTherapist || !selectedDate) {
+    useEffect(() => {
+        if (!selectedDurationId || !selectedTherapist || !selectedDate) {
+            setAvailableSlots([]);
+            return;
+        }
+        const fetchAvailability = async () => {
+            const dateString = dayjs(selectedDate).format('YYYY-MM-DD');
+            const url = `/api/availability?date=${dateString}&serviceId=${selectedDurationId}&therapistId=${selectedTherapist}`;
+            try {
+                // ▼▼▼  แก้ไขบรรทัดนี้  ▼▼▼
+                const response = await authFetch(url);
+                // ▲▲▲  แก้ไขบรรทัดนี้  ▲▲▲
+                const slots = await response.json();
+                setAvailableSlots(Array.isArray(slots) ? slots : []);
+                setSelectedSlot('');
+            } catch (e) {
+                console.error('Failed to fetch availability:', e);
                 setAvailableSlots([]);
-                return;
             }
-            const fetchAvailability = async () => {
-                const dateString = dayjs(selectedDate).format('YYYY-MM-DD');
-                const url = `/api/availability?date=${dateString}&serviceId=${selectedDurationId}&therapistId=${selectedTherapist}`;
-                try {
-                    const response = await fetch(url);
-                    const slots = await response.json();
-                    setAvailableSlots(Array.isArray(slots) ? slots : []);
-                    setSelectedSlot('');
-                } catch (e) {
-                    console.error('Failed to fetch availability:', e);
-                    setAvailableSlots([]);
-                }
-            };
-            fetchAvailability();
-        }, [selectedDurationId, selectedTherapist, selectedDate]);
+        };
+        fetchAvailability();
+    }, [selectedDurationId, selectedTherapist, selectedDate]);
 
     const handleBookingSubmit = async (event) => {
         event.preventDefault();
@@ -113,7 +114,7 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
                 throw new Error(result.error || 'Failed to create booking.');
             }
             alert('Booking created successfully!');
-            onSave(); // เรียกฟังก์ชัน onSave เพื่อปิด Modal และโหลดข้อมูลใหม่
+            onSave();
         } catch (error) {
             alert(`Error: ${error.message}`);
         } finally {
@@ -138,13 +139,13 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
                             <div className="form-group"><label>Customer Name</label><input type="text" required value={customerName} onChange={e => setCustomerName(e.target.value)} /></div>
                             <div className="form-group"><label>Customer Phone</label><PhoneInput international defaultCountry="DE" required value={customerPhone} onChange={setCustomerPhone}/></div>
                             <div className="form-group">
-    <label>E-mail (Optional)</label>
-    <input 
-        type="email" 
-        value={customerEmail} 
-        onChange={e => setCustomerEmail(e.target.value)}
-    />
-</div>
+                                <label>E-mail (Optional)</label>
+                                <input 
+                                    type="email" 
+                                    value={customerEmail} 
+                                    onChange={e => setCustomerEmail(e.target.value)}
+                                />
+                            </div>
                             <div className="form-group"><ServiceSelector groupedServices={groupedServices} selectedService={selectedService} onServiceChange={(e) => setSelectedService(e.target.value)} availableDurations={availableDurations} selectedDuration={selectedDurationId} onDurationChange={(e) => setSelectedDurationId(e.target.value)} /></div>
                         </div>
                         <div className="form-column">

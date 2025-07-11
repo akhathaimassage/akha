@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const db = require('./db');
 const dayjs = require('dayjs');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs'); // แนะนำให้ใช้ bcryptjs เพื่อความแน่นอน
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
@@ -42,26 +42,26 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-
-
 // =============================================
 // Public Endpoints (สำหรับลูกค้า)
 // =============================================
 
 app.get('/api/services', async (req, res) => {
     try {
-        const [services] = await db.query("SELECT * FROM services WHERE is_active = TRUE");
-        res.status(200).json(services);
+        const { rows } = await db.query("SELECT * FROM services WHERE is_active = TRUE");
+        res.status(200).json(rows);
     } catch (error) {
+        console.error('❌ Error fetching services:', error);
         res.status(500).json({ error: 'Failed to fetch services.' });
     }
 });
 
 app.get('/api/therapists', async (req, res) => {
     try {
-        const [therapists] = await db.query("SELECT id, full_name FROM therapists WHERE is_active = TRUE");
-        res.status(200).json(therapists);
+        const { rows } = await db.query("SELECT id, full_name FROM therapists WHERE is_active = TRUE");
+        res.status(200).json(rows);
     } catch (error) {
+        console.error('❌ Error fetching therapists:', error);
         res.status(500).json({ error: 'Failed to fetch therapists.' });
     }
 });
@@ -70,17 +70,23 @@ app.get('/api/availability', async (req, res) => {
     try {
         const { date, serviceId, therapistId } = req.query;
         if (!date || !serviceId || !therapistId) return res.status(200).json([]);
-        const [services] = await db.query('SELECT duration_minutes FROM services WHERE id = ?', [serviceId]);
-        if (services.length === 0) return res.status(200).json([]);
-        const durationMinutes = services[0].duration_minutes;
-        const [schedules] = await db.query('SELECT start_time, end_time FROM therapist_schedules WHERE therapist_id = ? AND day_of_week = ?', [therapistId, dayjs(date).day()]);
-        if (schedules.length === 0) return res.status(200).json([]);
-        const workingHours = { start: schedules[0].start_time, end: schedules[0].end_time };
-        const [existingBookings] = await db.query('SELECT start_datetime, end_datetime FROM bookings WHERE therapist_id = ? AND DATE(start_datetime) = ? AND status != ?', [therapistId, date, 'cancelled']);
+        
+        const servicesResult = await db.query('SELECT duration_minutes FROM services WHERE id = $1', [serviceId]);
+        if (servicesResult.rows.length === 0) return res.status(200).json([]);
+        const durationMinutes = servicesResult.rows[0].duration_minutes;
+
+        const schedulesResult = await db.query('SELECT start_time, end_time FROM therapist_schedules WHERE therapist_id = $1 AND day_of_week = $2', [therapistId, dayjs(date).day()]);
+        if (schedulesResult.rows.length === 0) return res.status(200).json([]);
+        const workingHours = { start: schedulesResult.rows[0].start_time, end: schedulesResult.rows[0].end_time };
+        
+        const bookingsResult = await db.query('SELECT start_datetime, end_datetime FROM bookings WHERE therapist_id = $1 AND DATE(start_datetime) = $2 AND status != $3', [therapistId, date, 'cancelled']);
+        const existingBookings = bookingsResult.rows;
+
         const availableSlots = [];
         let slotTime = dayjs(`${date} ${workingHours.start}`);
         const endTime = dayjs(`${date} ${workingHours.end}`);
         const interval = 30;
+
         while (slotTime.isBefore(endTime)) {
             const potentialEndTime = slotTime.add(durationMinutes, 'minute');
             if (potentialEndTime.isAfter(endTime)) break;
@@ -90,63 +96,63 @@ app.get('/api/availability', async (req, res) => {
         }
         res.status(200).json(availableSlots);
     } catch (error) {
+        console.error('❌ Error fetching availability:', error);
         res.status(500).json({ error: 'Failed to fetch availability.' });
     }
 });
 
 app.post('/api/bookings', async (req, res) => {
-    // ★ โค้ดที่แก้ไขและรวมส่วนส่งอีเมลเข้ามาแล้ว ★
     const { serviceId, therapistId, date, time, customerName, customerEmail, customerPhone } = req.body;
     if (!serviceId || !therapistId || !date || !time || !customerName || !customerPhone) {
         return res.status(400).json({ error: 'Missing required booking information.' });
     }
     const connection = await db.getConnection();
     try {
-        await connection.beginTransaction();
-        const [services] = await connection.query('SELECT name, duration_minutes, price FROM services WHERE id = ?', [serviceId]);
-        if (services.length === 0) throw new Error('Service not found.');
+        await connection.query('BEGIN');
+
+        const servicesResult = await connection.query('SELECT name, duration_minutes, price FROM services WHERE id = $1', [serviceId]);
+        if (servicesResult.rows.length === 0) throw new Error('Service not found.');
         
-        const { name: serviceName, duration_minutes: durationMinutes, price } = services[0];
+        const { name: serviceName, duration_minutes: durationMinutes, price } = servicesResult.rows[0];
         const startDateTime = dayjs(`${date} ${time}`);
         const endDateTime = startDateTime.add(durationMinutes, 'minute');
         const startDateTimeForDB = startDateTime.format('YYYY-MM-DD HH:mm:ss');
         const endDateTimeForDB = endDateTime.format('YYYY-MM-DD HH:mm:ss');
 
-        const [existingBookings] = await connection.query('SELECT id FROM bookings WHERE therapist_id = ? AND status != ? AND (? < end_datetime AND ? > start_datetime) FOR UPDATE', [therapistId, 'cancelled', startDateTimeForDB, endDateTimeForDB]);
-        if (existingBookings.length > 0) {
-            await connection.rollback();
+        const existingBookingsResult = await connection.query('SELECT id FROM bookings WHERE therapist_id = $1 AND status != $2 AND ($3 < end_datetime AND $4 > start_datetime) FOR UPDATE', [therapistId, 'cancelled', startDateTimeForDB, endDateTimeForDB]);
+        if (existingBookingsResult.rows.length > 0) {
+            await connection.query('ROLLBACK');
             return res.status(409).json({ error: 'This time slot is no longer available.' });
         }
         
         let customerId;
         if (customerEmail && customerEmail.trim() !== '') {
-            let [customers] = await connection.query('SELECT id FROM customers WHERE email = ?', [customerEmail]);
-            if (customers.length > 0) {
-                customerId = customers[0].id;
-                await connection.query("UPDATE customers SET full_name = ?, phone_number = ? WHERE id = ?", [customerName, customerPhone, customerId]);
+            let customersResult = await connection.query('SELECT id FROM customers WHERE email = $1', [customerEmail]);
+            if (customersResult.rows.length > 0) {
+                customerId = customersResult.rows[0].id;
+                await connection.query("UPDATE customers SET full_name = $1, phone_number = $2 WHERE id = $3", [customerName, customerPhone, customerId]);
             } else {
-                const [result] = await connection.query('INSERT INTO customers (full_name, email, phone_number) VALUES (?, ?, ?)', [customerName, customerEmail, customerPhone]);
-                customerId = result.insertId;
+                const result = await connection.query('INSERT INTO customers (full_name, email, phone_number) VALUES ($1, $2, $3) RETURNING id', [customerName, customerEmail, customerPhone]);
+                customerId = result.rows[0].id;
             }
         } else {
-            let [customers] = await connection.query('SELECT id FROM customers WHERE phone_number = ?', [customerPhone]);
-            if (customers.length > 0) {
-                customerId = customers[0].id;
-                await connection.query("UPDATE customers SET full_name = ? WHERE id = ?", [customerName, customerId]);
+            let customersResult = await connection.query('SELECT id FROM customers WHERE phone_number = $1', [customerPhone]);
+            if (customersResult.rows.length > 0) {
+                customerId = customersResult.rows[0].id;
+                await connection.query("UPDATE customers SET full_name = $1 WHERE id = $2", [customerName, customerId]);
             } else {
-                const [result] = await connection.query('INSERT INTO customers (full_name, phone_number) VALUES (?, ?)', [customerName, customerPhone]);
-                customerId = result.insertId;
+                const result = await connection.query('INSERT INTO customers (full_name, phone_number) VALUES ($1, $2) RETURNING id', [customerName, customerPhone]);
+                customerId = result.rows[0].id;
             }
         }
 
-        await connection.query('INSERT INTO bookings (customer_id, therapist_id, service_id, start_datetime, end_datetime, status, price_at_booking) VALUES (?, ?, ?, ?, ?, ?, ?)', [customerId, therapistId, serviceId, startDateTimeForDB, endDateTimeForDB, 'confirmed', price]);
+        await connection.query('INSERT INTO bookings (customer_id, therapist_id, service_id, start_datetime, end_datetime, status, price_at_booking) VALUES ($1, $2, $3, $4, $5, $6, $7)', [customerId, therapistId, serviceId, startDateTimeForDB, endDateTimeForDB, 'confirmed', price]);
         
-        const [therapists] = await connection.query('SELECT full_name FROM therapists WHERE id = ?', [therapistId]);
-        const therapistName = therapists[0]?.full_name || 'N/A';
+        const therapistsResult = await connection.query('SELECT full_name FROM therapists WHERE id = $1', [therapistId]);
+        const therapistName = therapistsResult.rows[0]?.full_name || 'N/A';
         
-        await connection.commit();
+        await connection.query('COMMIT');
         
-        // ส่งอีเมลหลังจาก commit สำเร็จ
         if (customerEmail && customerEmail.trim() !== '') {
             const mailOptions = {
                 from: `"Akha Thai Massage" <${process.env.EMAIL_USER}>`,
@@ -163,7 +169,7 @@ app.post('/api/bookings', async (req, res) => {
         res.status(201).json({ success: true, message: 'Booking confirmed successfully!' });
 
     } catch (error) {
-        if(connection) await connection.rollback();
+        if(connection) await connection.query('ROLLBACK');
         console.error('❌ Error creating booking:', error);
         res.status(500).json({ error: 'Failed to create booking.' });
     } finally {
@@ -179,10 +185,10 @@ app.post('/api/auth/login', async (req, res) => {
         const { username, password } = req.body;
         if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
 
-        const [users] = await db.query("SELECT * FROM admin_users WHERE username = ?", [username]);
-        if (users.length === 0) return res.status(401).json({ message: 'Invalid credentials.' });
+        const { rows } = await db.query("SELECT * FROM admin_users WHERE username = $1", [username]);
+        if (rows.length === 0) return res.status(401).json({ message: 'Invalid credentials.' });
         
-        const user = users[0];
+        const user = rows[0];
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) return res.status(401).json({ message: 'Invalid credentials.' });
 
@@ -190,10 +196,10 @@ app.post('/api/auth/login', async (req, res) => {
         const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '8h' });
         res.status(200).json({ message: 'Login successful!', token });
     } catch (error) {
+        console.error('❌ Error during login:', error);
         res.status(500).json({ message: 'Server error during login.' });
     }
 });
-
 
 // =============================================
 // Protected Admin Endpoints
@@ -204,10 +210,21 @@ app.get('/api/admin/bookings_by_date', verifyToken, async (req, res) => {
     const { date } = req.query;
     if (!date) return res.status(400).json({ error: 'Date query parameter is required.' });
     try {
-        const query = `SELECT b.id, b.start_datetime, b.end_datetime, s.name AS service_name, s.duration_minutes, t.id AS therapist_id, t.full_name AS therapist_name, c.full_name AS customer_name FROM bookings AS b JOIN services AS s ON b.service_id = s.id JOIN therapists AS t ON b.therapist_id = t.id JOIN customers AS c ON b.customer_id = c.id WHERE DATE(b.start_datetime) = ? AND b.status = 'confirmed' ORDER BY b.start_datetime;`;
-        const [bookings] = await db.query(query, [date]);
-        res.status(200).json(bookings);
+        const query = `
+            SELECT b.id, b.start_datetime, b.end_datetime, 
+                   s.name AS service_name, s.duration_minutes, 
+                   t.id AS therapist_id, t.full_name AS therapist_name, 
+                   c.full_name AS customer_name 
+            FROM bookings AS b 
+            JOIN services AS s ON b.service_id = s.id 
+            JOIN therapists AS t ON b.therapist_id = t.id 
+            JOIN customers AS c ON b.customer_id = c.id 
+            WHERE DATE(b.start_datetime) = $1 AND b.status = 'confirmed' 
+            ORDER BY b.start_datetime;`;
+        const { rows } = await db.query(query, [date]);
+        res.status(200).json(rows);
     } catch (error) {
+        console.error('❌ Error fetching schedule bookings:', error);
         res.status(500).json({ error: 'An error occurred fetching schedule bookings' });
     }
 });
@@ -215,52 +232,76 @@ app.get('/api/admin/bookings_by_date', verifyToken, async (req, res) => {
 // --- Therapist Management ---
 app.get('/api/therapists/all', verifyToken, async (req, res) => {
     try {
-        const [therapists] = await db.query("SELECT * FROM therapists ORDER BY id");
-        res.status(200).json(therapists);
-    } catch (error) { res.status(500).json({ error: 'Failed to fetch therapists' }); }
+        const { rows } = await db.query("SELECT * FROM therapists ORDER BY id");
+        res.status(200).json(rows);
+    } catch (error) { 
+        console.error('❌ Error fetching all therapists:', error);
+        res.status(500).json({ error: 'Failed to fetch therapists' }); 
+    }
 });
 
 app.post('/api/therapists', verifyToken, async (req, res) => {
     try {
         const { full_name } = req.body;
         if (!full_name) return res.status(400).json({ error: 'Full name is required' });
-        const [result] = await db.query("INSERT INTO therapists (full_name) VALUES (?)", [full_name]);
-        res.status(201).json({ id: result.insertId, full_name, is_active: true });
-    } catch (error) { res.status(500).json({ error: 'Failed to create therapist' }); }
+        const result = await db.query("INSERT INTO therapists (full_name) VALUES ($1) RETURNING id", [full_name]);
+        res.status(201).json({ id: result.rows[0].id, full_name, is_active: true });
+    } catch (error) { 
+        console.error('❌ Error creating therapist:', error);
+        res.status(500).json({ error: 'Failed to create therapist' }); 
+    }
 });
 
 app.put('/api/therapists/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { full_name, is_active } = req.body;
     if (full_name === undefined && is_active === undefined) return res.status(400).json({ error: 'No update data provided' });
+    
     let query = "UPDATE therapists SET ";
     const params = [];
-    if (full_name !== undefined) { query += "full_name = ?"; params.push(full_name); }
-    if (is_active !== undefined) { if (params.length > 0) query += ", "; query += "is_active = ?"; params.push(is_active); }
-    query += " WHERE id = ?";
+    let paramIndex = 1;
+
+    if (full_name !== undefined) { 
+        query += `full_name = $${paramIndex++}`; 
+        params.push(full_name); 
+    }
+    if (is_active !== undefined) { 
+        if (params.length > 0) query += ", "; 
+        query += `is_active = $${paramIndex++}`; 
+        params.push(is_active); 
+    }
+    query += ` WHERE id = $${paramIndex++}`;
     params.push(id);
+    
     try {
         await db.query(query, params);
         res.status(200).json({ success: true, message: 'Therapist updated' });
-    } catch (error) { res.status(500).json({ error: 'Failed to update therapist' }); }
+    } catch (error) { 
+        console.error('❌ Error updating therapist:', error);
+        res.status(500).json({ error: 'Failed to update therapist' }); 
+    }
 });
 
 app.delete('/api/therapists/:id/permanent', verifyToken, async (req, res) => {
     const { id } = req.params;
     try {
-        const [bookings] = await db.query("SELECT id FROM bookings WHERE therapist_id = ? AND start_datetime >= CURDATE()", [id]);
-        if (bookings.length > 0) return res.status(409).json({ error: `Cannot delete. This therapist has ${bookings.length} upcoming booking(s).` });
-        await db.query("DELETE FROM therapist_schedules WHERE therapist_id = ?", [id]);
-        await db.query("DELETE FROM therapists WHERE id = ?", [id]);
+        const bookingsResult = await db.query("SELECT id FROM bookings WHERE therapist_id = $1 AND start_datetime >= CURRENT_DATE", [id]);
+        if (bookingsResult.rows.length > 0) return res.status(409).json({ error: `Cannot delete. This therapist has ${bookingsResult.rows.length} upcoming booking(s).` });
+        
+        await db.query("DELETE FROM therapist_schedules WHERE therapist_id = $1", [id]);
+        await db.query("DELETE FROM therapists WHERE id = $1", [id]);
         res.status(200).json({ success: true, message: 'Therapist permanently deleted.' });
-    } catch (error) { res.status(500).json({ error: 'Failed to delete therapist' }); }
+    } catch (error) { 
+        console.error('❌ Error deleting therapist:', error);
+        res.status(500).json({ error: 'Failed to delete therapist' }); 
+    }
 });
 
 // --- Service Management ---
 app.get('/api/services/all', verifyToken, async (req, res) => {
     try {
-        const [services] = await db.query("SELECT * FROM services ORDER BY name, duration_minutes");
-        res.status(200).json(services);
+        const { rows } = await db.query("SELECT * FROM services ORDER BY name, duration_minutes");
+        res.status(200).json(rows);
     } catch (error) {
         console.error('❌ Error fetching all services:', error);
         res.status(500).json({ error: 'Failed to fetch services' });
@@ -270,55 +311,82 @@ app.post('/api/services', verifyToken, async (req, res) => {
     const { name, duration_minutes, price } = req.body;
     if (!name || !duration_minutes || !price) return res.status(400).json({ error: 'All fields are required' });
     try {
-        const [result] = await db.query("INSERT INTO services (name, duration_minutes, price) VALUES (?, ?, ?)", [name, duration_minutes, price]);
-        res.status(201).json({ id: result.insertId, name, duration_minutes, price, is_active: true });
-    } catch (error) { res.status(500).json({ error: 'Failed to create service' }); }
+        const result = await db.query("INSERT INTO services (name, duration_minutes, price) VALUES ($1, $2, $3) RETURNING id", [name, duration_minutes, price]);
+        res.status(201).json({ id: result.rows[0].id, name, duration_minutes, price, is_active: true });
+    } catch (error) { 
+        console.error('❌ Error creating service:', error);
+        res.status(500).json({ error: 'Failed to create service' }); 
+    }
 });
 app.put('/api/services/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { name, duration_minutes, price, is_active } = req.body;
+    
     const fields = [];
     const params = [];
-    if (name !== undefined) { fields.push("name = ?"); params.push(name); }
-    if (duration_minutes !== undefined) { fields.push("duration_minutes = ?"); params.push(duration_minutes); }
-    if (price !== undefined) { fields.push("price = ?"); params.push(price); }
-    if (is_active !== undefined) { fields.push("is_active = ?"); params.push(is_active); }
+    let paramIndex = 1;
+
+    if (name !== undefined) { fields.push(`name = $${paramIndex++}`); params.push(name); }
+    if (duration_minutes !== undefined) { fields.push(`duration_minutes = $${paramIndex++}`); params.push(duration_minutes); }
+    if (price !== undefined) { fields.push(`price = $${paramIndex++}`); params.push(price); }
+    if (is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); params.push(is_active); }
     if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
-    const query = `UPDATE services SET ${fields.join(', ')} WHERE id = ?`;
+    
+    const query = `UPDATE services SET ${fields.join(', ')} WHERE id = $${paramIndex++}`;
     params.push(id);
+    
     try {
         await db.query(query, params);
         res.status(200).json({ success: true, message: 'Service updated' });
-    } catch (error) { res.status(500).json({ error: 'Failed to update service' }); }
+    } catch (error) { 
+        console.error('❌ Error updating service:', error);
+        res.status(500).json({ error: 'Failed to update service' }); 
+    }
 });
 app.delete('/api/services/:id', verifyToken, async (req, res) => {
     try {
-        await db.query("UPDATE services SET is_active = FALSE WHERE id = ?", [req.params.id]);
+        await db.query("UPDATE services SET is_active = FALSE WHERE id = $1", [req.params.id]);
         res.status(200).json({ success: true, message: 'Service deactivated' });
-    } catch (error) { res.status(500).json({ error: 'Failed to deactivate service' }); }
+    } catch (error) { 
+        console.error('❌ Error deactivating service:', error);
+        res.status(500).json({ error: 'Failed to deactivate service' }); 
+    }
 });
 
 // --- Therapist Schedule Management ---
 app.get('/api/therapists/:therapistId/schedules', verifyToken, async (req, res) => {
     try {
-        const [schedules] = await db.query("SELECT * FROM therapist_schedules WHERE therapist_id = ? ORDER BY day_of_week", [req.params.therapistId]);
-        res.status(200).json(schedules);
-    } catch (error) { res.status(500).json({ error: 'Failed to fetch schedules' }); }
+        const { rows } = await db.query("SELECT * FROM therapist_schedules WHERE therapist_id = $1 ORDER BY day_of_week", [req.params.therapistId]);
+        res.status(200).json(rows);
+    } catch (error) { 
+        console.error('❌ Error fetching schedules:', error);
+        res.status(500).json({ error: 'Failed to fetch schedules' }); 
+    }
 });
 app.post('/api/schedules', verifyToken, async (req, res) => {
     const { therapist_id, day_of_week, start_time, end_time } = req.body;
     if (!therapist_id || day_of_week === undefined || !start_time || !end_time) return res.status(400).json({ error: 'Missing data' });
     try {
-        const query = `INSERT INTO therapist_schedules (therapist_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE start_time = VALUES(start_time), end_time = VALUES(end_time)`;
+        const query = `
+            INSERT INTO therapist_schedules (therapist_id, day_of_week, start_time, end_time) 
+            VALUES ($1, $2, $3, $4) 
+            ON CONFLICT (therapist_id, day_of_week) 
+            DO UPDATE SET start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time`;
         await db.query(query, [therapist_id, day_of_week, start_time, end_time]);
         res.status(201).json({ success: true, message: 'Schedule saved' });
-    } catch (error) { res.status(500).json({ error: 'Failed to save schedule' }); }
+    } catch (error) { 
+        console.error('❌ Error saving schedule:', error);
+        res.status(500).json({ error: 'Failed to save schedule' }); 
+    }
 });
 app.delete('/api/schedules/:scheduleId', verifyToken, async (req, res) => {
     try {
-        await db.query("DELETE FROM therapist_schedules WHERE id = ?", [req.params.scheduleId]);
+        await db.query("DELETE FROM therapist_schedules WHERE id = $1", [req.params.scheduleId]);
         res.status(200).json({ success: true, message: 'Schedule deleted' });
-    } catch (error) { res.status(500).json({ error: 'Failed to delete schedule' }); }
+    } catch (error) { 
+        console.error('❌ Error deleting schedule:', error);
+        res.status(500).json({ error: 'Failed to delete schedule' }); 
+    }
 });
 
 // --- Booking Management ---
@@ -326,65 +394,34 @@ app.get('/api/bookings/all', verifyToken, async (req, res) => {
     try {
         const { therapistName, timeFilter } = req.query;
 
-        // --- สร้าง Query หลักสำหรับ bookings ---
-        let bookingsQuery = `SELECT * FROM bookings`;
+        let bookingsQuery = `SELECT b.*, c.full_name as customer_name, c.email, c.phone_number, s.name as service_name, t.full_name as therapist_name 
+                             FROM bookings b
+                             LEFT JOIN customers c ON b.customer_id = c.id
+                             LEFT JOIN services s ON b.service_id = s.id
+                             LEFT JOIN therapists t ON b.therapist_id = t.id`;
+        
         const whereClauses = [];
         const params = [];
+        let paramIndex = 1;
 
-        if (therapistName) {
-            // เราไม่สามารถ filter ชื่อ therapist ที่นี่ได้โดยตรงแล้ว แต่เราจะกรองทีหลัง
-        }
         if (timeFilter === 'upcoming') {
-            whereClauses.push("start_datetime >= CURDATE()");
+            whereClauses.push(`b.start_datetime >= CURRENT_DATE`);
         } else if (timeFilter === 'past') {
-            whereClauses.push("start_datetime < CURDATE()");
+            whereClauses.push(`b.start_datetime < CURRENT_DATE`);
+        }
+        
+        if (therapistName) {
+            whereClauses.push(`t.full_name ILIKE $${paramIndex++}`);
+            params.push(`%${therapistName}%`);
         }
 
         if (whereClauses.length > 0) {
             bookingsQuery += " WHERE " + whereClauses.join(" AND ");
         }
-        bookingsQuery += " ORDER BY start_datetime DESC";
-
-        // 1. ดึงข้อมูลการจองทั้งหมดออกมาก่อน
-        const [bookings] = await db.query(bookingsQuery, params);
-
-        if (bookings.length === 0) {
-            return res.status(200).json([]);
-        }
-
-        // 2. รวบรวม ID ทั้งหมดที่ต้องใช้
-        const customerIds = [...new Set(bookings.map(b => b.customer_id))];
-        const serviceIds = [...new Set(bookings.map(b => b.service_id))];
-        const therapistIds = [...new Set(bookings.map(b => b.therapist_id))];
-
-        // 3. ดึงข้อมูลที่เกี่ยวข้องทั้งหมดในครั้งเดียว
-        const [customers] = await db.query("SELECT id, full_name, email, phone_number FROM customers WHERE id IN (?)", [customerIds]);
-        const [services] = await db.query("SELECT id, name as service_name, duration_minutes FROM services WHERE id IN (?)", [serviceIds]);
-        const [therapists] = await db.query("SELECT id, full_name as therapist_name FROM therapists WHERE id IN (?)", [therapistIds]);
-
-        // 4. สร้าง Map เพื่อให้ค้นหาข้อมูลได้ง่าย
-        const customersMap = new Map(customers.map(c => [c.id, c]));
-        const servicesMap = new Map(services.map(s => [s.id, s]));
-        const therapistsMap = new Map(therapists.map(t => [t.id, t]));
-
-        // 5. นำข้อมูลทั้งหมดมาประกอบร่างกัน
-        let combinedBookings = bookings.map(booking => ({
-            ...booking,
-            customer_name: customersMap.get(booking.customer_id)?.full_name,
-            email: customersMap.get(booking.customer_id)?.email,
-            phone_number: customersMap.get(booking.customer_id)?.phone_number,
-            service_name: servicesMap.get(booking.service_id)?.service_name,
-            therapist_name: therapistsMap.get(booking.therapist_id)?.therapist_name,
-        }));
+        bookingsQuery += " ORDER BY b.start_datetime DESC";
         
-        // กรองด้วยชื่อพนักงาน (ถ้ามี) หลังจากประกอบร่างแล้ว
-        if (therapistName) {
-            combinedBookings = combinedBookings.filter(b => 
-                b.therapist_name && b.therapist_name.toLowerCase().includes(therapistName.toLowerCase())
-            );
-        }
-
-        res.status(200).json(combinedBookings);
+        const { rows } = await db.query(bookingsQuery, params);
+        res.status(200).json(rows);
 
     } catch (error) {
         console.error('❌ Error fetching all bookings:', error);
@@ -394,72 +431,81 @@ app.get('/api/bookings/all', verifyToken, async (req, res) => {
 
 app.delete('/api/bookings/:id', verifyToken, async (req, res) => {
     try {
-        await db.query("DELETE FROM bookings WHERE id = ?", [req.params.id]);
+        await db.query("DELETE FROM bookings WHERE id = $1", [req.params.id]);
         res.status(200).json({ success: true, message: 'Booking deleted' });
-    } catch (error) { res.status(500).json({ error: 'Failed to delete booking' }); }
+    } catch (error) { 
+        console.error('❌ Error deleting booking:', error);
+        res.status(500).json({ error: 'Failed to delete booking' }); 
+    }
 });
 
 // --- User Management ---
 app.get('/api/users', verifyToken, async (req, res) => {
     try {
-        const [users] = await db.query("SELECT id, username, created_at FROM admin_users ORDER BY username");
-        res.status(200).json(users);
-    } catch (error) { res.status(500).json({ error: 'Failed to fetch users' }); }
+        const { rows } = await db.query("SELECT id, username, created_at FROM admin_users ORDER BY username");
+        res.status(200).json(rows);
+    } catch (error) { 
+        console.error('❌ Error fetching users:', error);
+        res.status(500).json({ error: 'Failed to fetch users' }); 
+    }
 });
 app.post('/api/users', verifyToken, async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
     try {
         const password_hash = await bcrypt.hash(password, saltRounds);
-        const [result] = await db.query("INSERT INTO admin_users (username, password_hash) VALUES (?, ?)", [username, password_hash]);
-        res.status(201).json({ id: result.insertId, username });
+        const result = await db.query("INSERT INTO admin_users (username, password_hash) VALUES ($1, $2) RETURNING id", [username, password_hash]);
+        res.status(201).json({ id: result.rows[0].id, username });
     } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'This username is already taken.' });
+        console.error('❌ Error creating user:', error);
+        if (error.code === '23505') { // Unique violation in PostgreSQL
+            return res.status(409).json({ error: 'This username is already taken.' });
+        }
         res.status(500).json({ error: 'Failed to create user' });
     }
 });
 app.delete('/api/users/:id', verifyToken, async (req, res) => {
     try {
-        await db.query("DELETE FROM admin_users WHERE id = ?", [req.params.id]);
+        await db.query("DELETE FROM admin_users WHERE id = $1", [req.params.id]);
         res.status(200).json({ success: true, message: 'User deleted' });
-    } catch (error) { res.status(500).json({ error: 'Failed to delete user' }); }
+    } catch (error) { 
+        console.error('❌ Error deleting user:', error);
+        res.status(500).json({ error: 'Failed to delete user' }); 
+    }
 });
 
 // --- Reports / Dashboard Endpoints ---
-
-// GET Revenue Summary
 app.get('/api/reports/revenue-summary', verifyToken, async (req, res) => {
-    const { year } = req.query; // รับค่า 'year' จาก query
-
+    const { year } = req.query;
     try {
         let query = `
             SELECT 
-                YEAR(start_datetime) as year,
-                MONTH(start_datetime) as month,
+                EXTRACT(YEAR FROM start_datetime) as year,
+                EXTRACT(MONTH FROM start_datetime) as month,
                 SUM(price_at_booking) as total_revenue
             FROM bookings
             WHERE status = 'confirmed'
         `;
         const params = [];
+        let paramIndex = 1;
 
         if (year) {
-            query += ' AND YEAR(start_datetime) = ?';
+            query += ` AND EXTRACT(YEAR FROM start_datetime) = $${paramIndex++}`;
             params.push(year);
         }
 
-        query += ' GROUP BY YEAR(start_datetime), MONTH(start_datetime) ORDER BY year, month;';
+        query += ' GROUP BY 1, 2 ORDER BY 1, 2;';
         
-        const [summary] = await db.query(query, params);
-        res.status(200).json(summary);
+        const { rows } = await db.query(query, params);
+        res.status(200).json(rows);
     } catch (error) {
+        console.error('❌ Error fetching revenue summary:', error);
         res.status(500).json({ error: 'Failed to fetch revenue summary' });
     }
 });
 
-// GET Therapist Performance
 app.get('/api/reports/therapist-performance', verifyToken, async (req, res) => {
-    const { year, month } = req.query; // รับค่า 'year' และ 'month'
-
+    const { year, month } = req.query;
     try {
         let query = `
             SELECT 
@@ -471,28 +517,25 @@ app.get('/api/reports/therapist-performance', verifyToken, async (req, res) => {
             WHERE b.status = 'confirmed'
         `;
         const params = [];
+        let paramIndex = 1;
 
         if (year) {
-            query += ' AND YEAR(b.start_datetime) = ?';
+            query += ` AND EXTRACT(YEAR FROM b.start_datetime) = $${paramIndex++}`;
             params.push(year);
         }
         if (month) {
-            query += ' AND MONTH(b.start_datetime) = ?';
+            query += ` AND EXTRACT(MONTH FROM b.start_datetime) = $${paramIndex++}`;
             params.push(month);
         }
 
-        query += ' GROUP BY b.therapist_id ORDER BY total_revenue DESC;';
+        query += ' GROUP BY t.full_name ORDER BY total_revenue DESC;';
 
-        const [summary] = await db.query(query, params);
-        res.status(200).json(summary);
+        const { rows } = await db.query(query, params);
+        res.status(200).json(rows);
     } catch (error) {
+        console.error('❌ Error fetching therapist performance:', error);
         res.status(500).json({ error: 'Failed to fetch therapist performance' });
     }
-
-    
-
-
-
 });
 
 // Start the server

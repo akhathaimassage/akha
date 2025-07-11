@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react'; // ★ 1. เพิ่ม useMemo
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { authFetch } from '../api/authFetch'; // ★ 1. เพิ่มบรรทัดนี้ (แก้ path ถ้าจำเป็น)
 import './LoginModal.css';
 
 function LoginModal({ isOpen, onClose }) {
@@ -7,22 +8,22 @@ function LoginModal({ isOpen, onClose }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false); // ★ 2. เพิ่ม state สำหรับกันการกดซ้ำ
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ★ 3. สร้างตัวแปรเช็คว่าฟอร์มพร้อมที่จะกดส่งหรือไม่
     const isFormValid = useMemo(() => {
         return username.trim() !== '' && password.trim() !== '' && !isSubmitting;
     }, [username, password, isSubmitting]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!isFormValid) return; // ป้องกันการ submit ถ้าฟอร์มไม่สมบูรณ์
+        if (!isFormValid) return;
 
-        setIsSubmitting(true); // เริ่มกระบวนการ, ปุ่มจะถูก disable
+        setIsSubmitting(true);
         setError('');
 
         try {
-            const response = await fetch('http://192.168.1.35:3001/api/auth/login', {
+            // ★ 2. แก้ไขการเรียก API ให้ใช้ authFetch และ URL ที่ถูกต้อง
+            const response = await authFetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
@@ -39,7 +40,7 @@ function LoginModal({ isOpen, onClose }) {
         } catch (err) {
             setError(err.message);
         } finally {
-            setIsSubmitting(false); // ★ 4. คืนสถานะปุ่มให้กดได้ ไม่ว่าผลลัพธ์จะเป็นอย่างไร
+            setIsSubmitting(false);
         }
     };
     
@@ -64,7 +65,6 @@ function LoginModal({ isOpen, onClose }) {
                         </div>
                         {error && <p className="error-message">{error}</p>}
                         
-                        {/* ★ 5. เพิ่ม attribute 'disabled' และเปลี่ยนข้อความในปุ่ม */}
                         <button type="submit" className="submit-login-btn" disabled={!isFormValid}>
                             {isSubmitting ? 'Logging in...' : 'Login'}
                         </button>

@@ -6,6 +6,7 @@ import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import './BookingModal.css';
 import dayjs from 'dayjs';
+import { authFetch } from '../api/authFetch'; //  << 1. เพิ่มบรรทัดนี้ (แก้ path ถ้าจำเป็น)
 
 function BookingModal({ isOpen, onClose }) {
     const [groupedServices, setGroupedServices] = useState({});
@@ -35,7 +36,7 @@ function BookingModal({ isOpen, onClose }) {
         if (isOpen) {
             const fetchServices = async () => {
                 try {
-                    const res = await fetch('/api/services');
+                    const res = await authFetch('/api/services'); // << 2. แก้ไขตรงนี้
                     const data = await res.json();
                     const grouped = data.reduce((acc, s) => { if (!acc[s.name]) acc[s.name] = []; acc[s.name].push(s); return acc; }, {});
                     setGroupedServices(grouped);
@@ -43,7 +44,7 @@ function BookingModal({ isOpen, onClose }) {
             };
             const fetchTherapists = async () => {
                 try {
-                    const res = await fetch('/api/therapists');
+                    const res = await authFetch('/api/therapists'); // << 3. แก้ไขตรงนี้
                     const data = await res.json();
                     setTherapists(data);
                 } catch (e) { console.error(e); }
@@ -71,7 +72,7 @@ function BookingModal({ isOpen, onClose }) {
             const dateString = dayjs(selectedDate).format('YYYY-MM-DD');
             const url = `/api/availability?date=${dateString}&serviceId=${selectedDurationId}&therapistId=${selectedTherapist}`;
             try {
-                const response = await fetch(url);
+                const response = await authFetch(url); // << 4. แก้ไขตรงนี้
                 const slots = await response.json();
                 setAvailableSlots(Array.isArray(slots) ? slots : []);
                 setSelectedSlot('');
@@ -99,12 +100,16 @@ function BookingModal({ isOpen, onClose }) {
         };
 
         try {
-            const response = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bookingDetails) });
+            const response = await authFetch('/api/bookings', { // << 5. แก้ไขตรงนี้
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(bookingDetails) 
+            });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Failed to book.');
             
             alert('Booking successful! Thank you.');
-            onClose(); // เรียกฟังก์ชันปิด Modal ที่ได้รับจาก props
+            onClose(); 
         } catch (error) {
             alert(`Booking failed: ${error.message}`);
         } finally {
@@ -132,7 +137,7 @@ function BookingModal({ isOpen, onClose }) {
                         <div className="form-column">
                             <div className="form-group"><label>Vollständiger Name</label><input type="text" required value={customerName} onChange={e => setCustomerName(e.target.value)} /></div>
                             <div className="form-group"><label>Telefon</label><PhoneInput international defaultCountry="DE" value={customerPhone} onChange={setCustomerPhone}/></div>
-                            <div className="form-group"><label>E-mail</label><input type="email" required value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} /></div>
+                            <div className="form-group"><label>E-mail</label><input type="email" required value={customerEmail} onChange={e => setEmail(e.target.value)} /></div>
                             <div className="form-group"><ServiceSelector groupedServices={groupedServices} selectedService={selectedService} onServiceChange={(e) => setSelectedService(e.target.value)} availableDurations={availableDurations} selectedDuration={selectedDurationId} onDurationChange={(e) => setSelectedDurationId(e.target.value)} /></div>
                             <div className="form-group"><TherapistSelector therapists={therapists} selectedTherapist={selectedTherapist} onChange={(e) => setSelectedTherapist(e.target.value)} /></div>
                             <div className="form-group">
