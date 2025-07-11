@@ -1,11 +1,16 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+// สร้าง Pool โดยใช้ Environment Variables แยกส่วน
+// เพื่อให้แน่ใจว่า SSL ถูกบังคับใช้อย่างชัดเจน
 const pool = new Pool({
-  // ใช้ Internal Connection URL ที่ตั้งค่าไว้ใน Environment
-  connectionString: process.env.DB_INTERNAL_URL, 
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
   
-  // ★★★ บรรทัดนี้สำคัญที่สุดสำหรับแก้ปัญหา SSL ★★★
+  // ★★★ การตั้งค่า SSL ยังคงเป็นส่วนที่สำคัญที่สุด ★★★
   ssl: {
     rejectUnauthorized: false
   }
