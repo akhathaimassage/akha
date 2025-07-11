@@ -12,11 +12,13 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // --- Middlewares ---
-app.use(cors());
+app.use(cors({
   origin: [
-    'http://localhost:5173', // สำหรับตอนพัฒนา
-    'https://akhathaimassage.de' // ★ ใส่ Domain จริงของคุณที่นี่
+    'http://localhost:5173',
+    'https://akhathaimassage.de',
+    'https://www.akhathaimassage.de'
   ]
+}));
 app.use(express.json());
 
 // --- Middleware to Verify JWT Token ---
