@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
+// ★ เพิ่ม 2 บรรทัดนี้เพื่อให้แน่ใจว่าการจัดการเวลาถูกต้อง
+import utc from 'dayjs/plugin/utc'; 
+dayjs.extend(utc);
+
 import './Admin.css';
 import { authFetch } from '../api/authFetch';
 import useDebounce from '../hooks/useDebounce';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import AdminBookingModal from '../components/AdminBookingModal'; // ★ Import the modal
+import AdminBookingModal from '../components/AdminBookingModal';
 
 function BookingManagementPage() {
     const [bookings, setBookings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [therapistFilter, setTherapistFilter] = useState('');
     const [timeFilter, setTimeFilter] = useState('all');
-    const [isBookingModalOpen, setIsBookingModalOpen] = useState(false); // ★ State for the modal
+    const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
     const debouncedTherapistFilter = useDebounce(therapistFilter, 500);
 
@@ -73,7 +77,8 @@ function BookingManagementPage() {
             startY: 35,
             head: [['Date & Time', 'Customer', 'Phone', 'Service', 'Therapist', 'Status']],
             body: bookings.map(b => [
-                dayjs(b.start_datetime).format('DD MMM, HH:mm'),
+                // ★ แก้ไขตรงนี้เพื่อความแน่นอน 100%
+                dayjs.utc(b.start_datetime).format('DD MMM, HH:mm'),
                 b.customer_name || 'N/A',
                 b.phone_number || 'N/A',
                 b.service_name || 'N/A',
