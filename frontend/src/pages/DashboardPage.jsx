@@ -88,7 +88,7 @@ function DashboardPage() {
 
             // --- คำนวณข้อมูลสรุปในการ์ด ---
             const totalRevenue = therapistJson.reduce((sum, current) => sum + parseFloat(current.total_revenue), 0);
-            const totalBookings = therapistJson.reduce((sum, current) => sum + current.booking_count, 0);
+            const totalBookings = therapistJson.reduce((sum, current) => sum + parseInt(current.booking_count, 10), 0);
             setSummaryStats({
                 totalRevenue: totalRevenue.toFixed(2),
                 totalBookings

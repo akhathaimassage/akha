@@ -15,7 +15,7 @@ function MobileScheduleView({ bookings }) {
           {/* ★ แก้ไข style ที่ div นี้ ★ */}
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: '8px', marginBottom: '8px' }}>
             <span style={{fontWeight: 'bold', fontSize: '1.1em'}}>
-              {dayjs(booking.start_datetime).format('HH:mm')}
+              {dayjs.utc(booking.start_datetime).format('HH:mm')}
             </span>
             <span style={{opacity: 0.9}}>
               {booking.therapist_name} 

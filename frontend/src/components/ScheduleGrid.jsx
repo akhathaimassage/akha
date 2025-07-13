@@ -15,7 +15,7 @@ function ScheduleGrid({ bookings, therapists }) {
   timeSlots.push(`${String(endTime).padStart(2, '0')}:00`);
 
   const getRowIndex = (dateTimeString) => {
-    const naiveTime = dayjs(dateTimeString);
+    const naiveTime = dayjs.utc(dateTimeString);
     const hour = naiveTime.hour();
     const minute = naiveTime.minute();
     const minutesFromStart = (hour - startTime) * 60 + minute;
@@ -84,7 +84,7 @@ function ScheduleGrid({ bookings, therapists }) {
           return (
             <div key={booking.id} className="booking-block" style={bookingStyle}>
               <p style={{fontWeight: 'bold', margin: 2}}>
-                {dayjs(booking.start_datetime).format('HH:mm')}
+                {dayjs.utc(booking.start_datetime).format('HH:mm')}
               </p>
               <p style={{fontSize: '0.9em', opacity: 0.9, margin: '4px 0', marginTop: '10px'}}>
                 {booking.therapist_name}

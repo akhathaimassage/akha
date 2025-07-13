@@ -144,7 +144,7 @@ function BookingManagementPage() {
                         ) : bookings.length > 0 ? (
                             bookings.map(booking => (
                                 <tr key={booking.id}>
-                                    <td data-label="Date & Time">{dayjs(booking.start_datetime).format('DD MMM YY, HH:mm')}</td>
+                                    <td data-label="Date & Time">{dayjs.utc(booking.start_datetime).format('DD MMM YY, HH:mm')}</td>
                                     <td data-label="Customer Info">
                                         <div className="customer-details">
                                             <div style={{ fontWeight: 'bold' }}>{booking.customer_name}</div>
