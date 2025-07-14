@@ -10,6 +10,7 @@ import { authFetch } from '../api/authFetch';
 
 function AdminBookingModal({ isOpen, onClose, onSave }) {
     const [groupedServices, setGroupedServices] = useState({});
+    const [therapists, setTherapists] = useState([]);
     const [selectedService, setSelectedService] = useState('');
     const [selectedDurationId, setSelectedDurationId] = useState('');
     const [selectedTherapist, setSelectedTherapist] = useState('');
@@ -21,10 +22,6 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
     const [customerEmail, setCustomerEmail] = useState('');
     const [customerPhone, setCustomerPhone] = useState();
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // ★ เพิ่ม State สำหรับจัดการรายชื่อพนักงาน
-    const [allTherapists, setAllTherapists] = useState([]);
-    const [availableTherapists, setAvailableTherapists] = useState([]);
 
     const isFormValid = useMemo(() => {
         return (
@@ -52,27 +49,12 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
             const fetchTherapists = async () => {
                 const res = await authFetch('/api/therapists');
                 const data = await res.json();
-                setAllTherapists(data); // ★ เก็บข้อมูลพนักงานทั้งหมด
-                setAvailableTherapists(data); // ★ ตอนเริ่มต้นให้แสดงทั้งหมด
+                setTherapists(data);
             };
             fetchServices();
             fetchTherapists();
         }
     }, [isOpen]);
-    
-    // ★ เพิ่ม useEffect นี้เข้าไปใหม่ทั้งหมด
-    useEffect(() => {
-        if (!selectedDate || allTherapists.length === 0) {
-            setAvailableTherapists(allTherapists);
-            return;
-        }
-        const selectedDay = dayjs(selectedDate).day();
-        const filtered = allTherapists.filter(therapist => 
-            therapist.work_days && therapist.work_days.includes(selectedDay)
-        );
-        setAvailableTherapists(filtered);
-        setSelectedTherapist('');
-    }, [selectedDate, allTherapists]);
     
     useEffect(() => { 
         if (selectedService && groupedServices[selectedService]) { 
@@ -92,7 +74,9 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
             const dateString = dayjs(selectedDate).format('YYYY-MM-DD');
             const url = `/api/availability?date=${dateString}&serviceId=${selectedDurationId}&therapistId=${selectedTherapist}`;
             try {
+                // ▼▼▼  แก้ไขบรรทัดนี้  ▼▼▼
                 const response = await authFetch(url);
+                // ▲▲▲  แก้ไขบรรทัดนี้  ▲▲▲
                 const slots = await response.json();
                 setAvailableSlots(Array.isArray(slots) ? slots : []);
                 setSelectedSlot('');
@@ -165,8 +149,7 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
                             <div className="form-group"><ServiceSelector groupedServices={groupedServices} selectedService={selectedService} onServiceChange={(e) => setSelectedService(e.target.value)} availableDurations={availableDurations} selectedDuration={selectedDurationId} onDurationChange={(e) => setSelectedDurationId(e.target.value)} /></div>
                         </div>
                         <div className="form-column">
-                            {/* ▼ แก้ไข dropdown ของ Therapist ให้ใช้ state ใหม่ ▼ */}
-                            <div className="form-group"><TherapistSelector therapists={availableTherapists} selectedTherapist={selectedTherapist} onChange={(e) => setSelectedTherapist(e.target.value)} /></div>
+                            <div className="form-group"><TherapistSelector therapists={therapists} selectedTherapist={selectedTherapist} onChange={(e) => setSelectedTherapist(e.target.value)} /></div>
                             <div className="form-group">
                                 <label htmlFor="timeslot-select">Time Slot</label>
                                 <select id="timeslot-select" value={selectedSlot} onChange={(e) => setSelectedSlot(e.target.value)} disabled={availableSlots.length === 0} required>

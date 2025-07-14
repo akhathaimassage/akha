@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ServiceSelector from './ServiceSelector';
 import TherapistSelector from './TherapistSelector';
 import DateTimePicker from './DateTimePicker';
@@ -10,6 +10,7 @@ import { authFetch } from '../api/authFetch';
 
 function BookingModal({ isOpen, onClose }) {
     const [groupedServices, setGroupedServices] = useState({});
+    const [therapists, setTherapists] = useState([]);
     const [selectedService, setSelectedService] = useState('');
     const [selectedDurationId, setSelectedDurationId] = useState('');
     const [selectedTherapist, setSelectedTherapist] = useState('');
@@ -22,10 +23,6 @@ function BookingModal({ isOpen, onClose }) {
     const [customerPhone, setCustomerPhone] = useState();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ★ เพิ่ม State สำหรับจัดการรายชื่อพนักงาน
-    const [allTherapists, setAllTherapists] = useState([]);
-    const [availableTherapists, setAvailableTherapists] = useState([]);
-
     const isFormValid = useMemo(() => {
         const isEmailValid = customerEmail && customerEmail.includes('@');
         return (
@@ -34,7 +31,6 @@ function BookingModal({ isOpen, onClose }) {
         );
     }, [customerName, customerEmail, customerPhone, selectedDurationId, selectedTherapist, selectedSlot, isSubmitting]);
     
-    // Fetch initial data
     useEffect(() => {
         if (isOpen) {
             const fetchServices = async () => {
@@ -49,29 +45,13 @@ function BookingModal({ isOpen, onClose }) {
                 try {
                     const res = await authFetch('/api/therapists');
                     const data = await res.json();
-                    setAllTherapists(data); // ★ เก็บข้อมูลพนักงานทั้งหมด
-                    setAvailableTherapists(data); // ★ ตอนเริ่มต้นให้แสดงทั้งหมด
+                    setTherapists(data);
                 } catch (e) { console.error(e); }
             };
             fetchServices();
             fetchTherapists();
         }
     }, [isOpen]);
-
-    // ★ เพิ่ม useEffect นี้เข้าไปใหม่ทั้งหมด
-    // เพื่อกรองรายชื่อพนักงานทุกครั้งที่ 'selectedDate' เปลี่ยน
-    useEffect(() => {
-        if (!selectedDate || allTherapists.length === 0) {
-            setAvailableTherapists(allTherapists);
-            return;
-        }
-        const selectedDay = dayjs(selectedDate).day(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-        const filtered = allTherapists.filter(therapist => 
-            therapist.work_days && therapist.work_days.includes(selectedDay)
-        );
-        setAvailableTherapists(filtered);
-        setSelectedTherapist(''); // รีเซ็ตพนักงานที่เลือกไว้
-    }, [selectedDate, allTherapists]);
 
     useEffect(() => { 
         if (selectedService && groupedServices[selectedService]) { 
@@ -154,12 +134,10 @@ function BookingModal({ isOpen, onClose }) {
                         <div className="form-column">
                             <div className="form-group"><label>Vollständiger Name</label><input type="text" required value={customerName} onChange={e => setCustomerName(e.target.value)} /></div>
                             <div className="form-group"><label>Telefon</label><PhoneInput international defaultCountry="DE" value={customerPhone} onChange={setCustomerPhone}/></div>
+                            {/* ▼▼▼ แก้ไขบรรทัดนี้แล้ว ▼▼▼ */}
                             <div className="form-group"><label>E-mail</label><input type="email" required value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} /></div>
                             <div className="form-group"><ServiceSelector groupedServices={groupedServices} selectedService={selectedService} onServiceChange={(e) => setSelectedService(e.target.value)} availableDurations={availableDurations} selectedDuration={selectedDurationId} onDurationChange={(e) => setSelectedDurationId(e.target.value)} /></div>
-                            
-                            {/* ▼ แก้ไข dropdown ของ Therapist ให้ใช้ state ใหม่ ▼ */}
-                            <div className="form-group"><TherapistSelector therapists={availableTherapists} selectedTherapist={selectedTherapist} onChange={(e) => setSelectedTherapist(e.target.value)} /></div>
-                            
+                            <div className="form-group"><TherapistSelector therapists={therapists} selectedTherapist={selectedTherapist} onChange={(e) => setSelectedTherapist(e.target.value)} /></div>
                             <div className="form-group">
                                 <label htmlFor="timeslot-select">Freizeit</label>
                                 <select id="timeslot-select" value={selectedSlot} onChange={(e) => setSelectedSlot(e.target.value)} disabled={availableSlots.length === 0}>
