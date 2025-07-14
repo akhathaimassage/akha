@@ -58,10 +58,34 @@ app.get('/api/services', async (req, res) => {
 
 app.get('/api/therapists', async (req, res) => {
     try {
-        const { rows } = await db.query("SELECT id, full_name FROM therapists WHERE is_active = TRUE");
-        res.status(200).json(rows);
+        // 1. ดึงข้อมูลพนักงานที่ยังทำงานอยู่ทั้งหมด
+        const therapistsResult = await db.query("SELECT id, full_name FROM therapists WHERE is_active = TRUE");
+        const therapists = therapistsResult.rows;
+
+        if (therapists.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        // 2. ดึงข้อมูลตารางเวลาทั้งหมด
+        const schedulesResult = await db.query("SELECT therapist_id, day_of_week FROM therapist_schedules");
+        const schedules = schedulesResult.rows;
+
+        // 3. นำข้อมูลตารางเวลาไปใส่ใน object ของพนักงานแต่ละคน
+        const therapistsWithSchedules = therapists.map(therapist => {
+            const therapistSchedules = schedules
+                .filter(s => s.therapist_id === therapist.id)
+                .map(s => s.day_of_week); // เอาเฉพาะวันในสัปดาห์
+
+            return {
+                ...therapist,
+                work_days: therapistSchedules // เพิ่ม key ใหม่เข้าไป
+            };
+        });
+
+        res.status(200).json(therapistsWithSchedules);
+
     } catch (error) {
-        console.error('❌ Error fetching therapists:', error);
+        console.error('❌ Error fetching therapists with schedules:', error);
         res.status(500).json({ error: 'Failed to fetch therapists.' });
     }
 });

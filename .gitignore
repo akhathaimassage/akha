@@ -1,0 +1,5 @@
+# โฟลเดอร์ของ Node.js ที่ไม่ต้องนำขึ้น Git
+node_modules
+
+# ไฟล์ข้อมูลลับของ Backend
+backend/.env

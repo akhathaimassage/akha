@@ -1,7 +1,7 @@
 export const authFetch = async (url, options = {}) => {
     // 1. ดึง token จาก localStorage
     const token = localStorage.getItem('token');
-    const BASE_URL = 'https://akha-massage-api.onrender.com';
+    const BASE_URL = import.meta.env.VITE_API_URL || 'https://akha-massage-api.onrender.com';
 
     // 2. เตรียม Headers เริ่มต้น
     const headers = {
