@@ -58,10 +58,34 @@ app.get('/api/services', async (req, res) => {
 
 app.get('/api/therapists', async (req, res) => {
     try {
-        const { rows } = await db.query("SELECT id, full_name FROM therapists WHERE is_active = TRUE");
-        res.status(200).json(rows);
+        // 1. ดึงข้อมูลพนักงานที่ยังทำงานอยู่ทั้งหมด
+        const therapistsResult = await db.query("SELECT id, full_name FROM therapists WHERE is_active = TRUE");
+        const therapists = therapistsResult.rows;
+
+        if (therapists.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        // 2. ดึงข้อมูลตารางเวลาทั้งหมด
+        const schedulesResult = await db.query("SELECT therapist_id, day_of_week FROM therapist_schedules");
+        const schedules = schedulesResult.rows;
+
+        // 3. นำข้อมูลตารางเวลาไปใส่ใน object ของพนักงานแต่ละคน
+        const therapistsWithSchedules = therapists.map(therapist => {
+            const therapistSchedules = schedules
+                .filter(s => s.therapist_id === therapist.id)
+                .map(s => s.day_of_week); // เอาเฉพาะวันในสัปดาห์
+
+            return {
+                ...therapist,
+                work_days: therapistSchedules // เพิ่ม key ใหม่เข้าไป
+            };
+        });
+
+        res.status(200).json(therapistsWithSchedules);
+
     } catch (error) {
-        console.error('❌ Error fetching therapists:', error);
+        console.error('❌ Error fetching therapists with schedules:', error);
         res.status(500).json({ error: 'Failed to fetch therapists.' });
     }
 });
@@ -110,11 +134,17 @@ app.post('/api/bookings', async (req, res) => {
     if (!serviceId || !therapistId || !date || !time || !customerName || !customerPhone) {
         return res.status(400).json({ error: 'Missing required booking information.' });
     }
-    const connection = await db.getConnection();
-    try {
-        await connection.query('BEGIN');
+    
+    // ตรวจสอบว่าสั้นไปหรือไม่
+    if (!customerPhone || customerPhone.length < 10) { // ตัวอย่าง: ตรวจสอบว่าสั้นไปหรือไม่
+        return res.status(400).json({ error: 'Invalid phone number format.' });
+    }
 
-        const servicesResult = await connection.query('SELECT name, duration_minutes, price FROM services WHERE id = $1', [serviceId]);
+    
+    try {
+        await db.query('BEGIN');
+
+        const servicesResult = await db.query('SELECT name, duration_minutes, price FROM services WHERE id = $1', [serviceId]);
         if (servicesResult.rows.length === 0) throw new Error('Service not found.');
         
         const { name: serviceName, duration_minutes: durationMinutes, price } = servicesResult.rows[0];
@@ -125,39 +155,40 @@ app.post('/api/bookings', async (req, res) => {
         const startDateTimeForDB = startDateTime.format('YYYY-MM-DD HH:mm:ss');
         const endDateTimeForDB = endDateTime.format('YYYY-MM-DD HH:mm:ss');
 
-        const existingBookingsResult = await connection.query('SELECT id FROM bookings WHERE therapist_id = $1 AND status != $2 AND ($3 < end_datetime AND $4 > start_datetime) FOR UPDATE', [therapistId, 'cancelled', startDateTimeForDB, endDateTimeForDB]);
+        const existingBookingsResult = await db.query('SELECT id FROM bookings WHERE therapist_id = $1 AND status != $2 AND ($3 < end_datetime AND $4 > start_datetime) FOR UPDATE', [therapistId, 'cancelled', startDateTimeForDB, endDateTimeForDB]);
         if (existingBookingsResult.rows.length > 0) {
-            await connection.query('ROLLBACK');
+            await db.query('ROLLBACK');
             return res.status(409).json({ error: 'This time slot is no longer available.' });
         }
         
         let customerId;
         if (customerEmail && customerEmail.trim() !== '') {
-            let customersResult = await connection.query('SELECT id FROM customers WHERE email = $1', [customerEmail]);
+            let customersResult = await db.query('SELECT id FROM customers WHERE email = $1', [customerEmail]);
             if (customersResult.rows.length > 0) {
                 customerId = customersResult.rows[0].id;
-                await connection.query("UPDATE customers SET full_name = $1, phone_number = $2 WHERE id = $3", [customerName, customerPhone, customerId]);
+                await db.query("UPDATE customers SET full_name = $1, phone_number = $2 WHERE id = $3", [customerName, customerPhone, customerId]);
             } else {
-                const result = await connection.query('INSERT INTO customers (full_name, email, phone_number) VALUES ($1, $2, $3) RETURNING id', [customerName, customerEmail, customerPhone]);
+                const result = await db.query('INSERT INTO customers (full_name, email, phone_number) VALUES ($1, $2, $3) RETURNING id', [customerName, customerEmail, customerPhone]);
                 customerId = result.rows[0].id;
             }
         } else {
-            let customersResult = await connection.query('SELECT id FROM customers WHERE phone_number = $1', [customerPhone]);
+            let customersResult = await db.query('SELECT id FROM customers WHERE phone_number = $1', [customerPhone]);
             if (customersResult.rows.length > 0) {
                 customerId = customersResult.rows[0].id;
-                await connection.query("UPDATE customers SET full_name = $1 WHERE id = $2", [customerName, customerId]);
+                await db.query("UPDATE customers SET full_name = $1 WHERE id = $2", [customerName, customerId]);
             } else {
-                const result = await connection.query('INSERT INTO customers (full_name, phone_number) VALUES ($1, $2) RETURNING id', [customerName, customerPhone]);
+                const result = await db.query('INSERT INTO customers (full_name, phone_number) VALUES ($1, $2) RETURNING id', [customerName, customerPhone]);
                 customerId = result.rows[0].id;
             }
         }
-
-        await connection.query('INSERT INTO bookings (customer_id, therapist_id, service_id, start_datetime, end_datetime, status, price_at_booking) VALUES ($1, $2, $3, $4, $5, $6, $7)', [customerId, therapistId, serviceId, startDateTimeForDB, endDateTimeForDB, 'confirmed', price]);
         
-        const therapistsResult = await connection.query('SELECT full_name FROM therapists WHERE id = $1', [therapistId]);
+
+        await db.query('INSERT INTO bookings (customer_id, therapist_id, service_id, start_datetime, end_datetime, status, price_at_booking) VALUES ($1, $2, $3, $4, $5, $6, $7)', [customerId, therapistId, serviceId, startDateTimeForDB, endDateTimeForDB, 'confirmed', price]);
+        
+        const therapistsResult = await db.query('SELECT full_name FROM therapists WHERE id = $1', [therapistId]);
         const therapistName = therapistsResult.rows[0]?.full_name || 'N/A';
         
-        await connection.query('COMMIT');
+        await db.query('COMMIT');
         
         if (customerEmail && customerEmail.trim() !== '') {
             const mailOptions = {
@@ -172,14 +203,15 @@ app.post('/api/bookings', async (req, res) => {
             });
         }
         
+        
         res.status(201).json({ success: true, message: 'Booking confirmed successfully!' });
 
     } catch (error) {
-        if(connection) await connection.query('ROLLBACK');
+        if(connection) await db.query('ROLLBACK');
         console.error('❌ Error creating booking:', error);
         res.status(500).json({ error: 'Failed to create booking.' });
     } finally {
-        if (connection) connection.release();
+        
     }
 });
 
@@ -359,6 +391,32 @@ app.delete('/api/services/:id', verifyToken, async (req, res) => {
     }
 });
 
+app.delete('/api/services/:id/permanent', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        // ตรวจสอบก่อนว่ามี booking ในอนาคตใช้ service นี้หรือไม่ (optional)
+        const bookingsResult = await db.query(
+            "SELECT id FROM bookings WHERE service_id = $1 AND start_datetime >= CURRENT_DATE", 
+            [id]
+        );
+
+        if (bookingsResult.rows.length > 0) {
+            return res.status(409).json({ 
+                error: `Cannot delete. This service is used in ${bookingsResult.rows.length} upcoming booking(s).` 
+            });
+        }
+        
+        // ถ้าไม่มี booking ที่เกี่ยวข้อง ก็ทำการลบ
+        await db.query("DELETE FROM services WHERE id = $1", [id]);
+        res.status(200).json({ success: true, message: 'Service permanently deleted.' });
+
+    } catch (error) { 
+        console.error('❌ Error permanently deleting service:', error);
+        res.status(500).json({ error: 'Failed to permanently delete service.' }); 
+    }
+});
+
+
 // --- Therapist Schedule Management ---
 app.get('/api/therapists/:therapistId/schedules', verifyToken, async (req, res) => {
     try {
@@ -394,6 +452,10 @@ app.delete('/api/schedules/:scheduleId', verifyToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to delete schedule' }); 
     }
 });
+
+
+
+
 
 // --- Booking Management ---
 app.get('/api/bookings/all', verifyToken, async (req, res) => {
