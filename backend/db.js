@@ -1,18 +1,15 @@
-const { Pool } = require('pg');
 require('dotenv').config();
+const { Pool } = require('pg');
 
 const pool = new Pool({
-  // ใช้วิธีนี้จะง่ายที่สุด โดยการนำ Internal Connection URL ทั้งหมดจาก Render มาใส่
-  connectionString: process.env.DB_INTERNAL_URL, 
-  
-  // ★★★ บรรทัดนี้สำคัญที่สุดสำหรับแก้ปัญหา SSL ★★★
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+  port: process.env.DB_PORT,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-// ส่งออก (export) object เพื่อให้ server.js เดิมทำงานได้
-module.exports = {
-    query: (text, params) => pool.query(text, params),
-    getConnection: () => pool.connect()
-};
+module.exports = pool;
