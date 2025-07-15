@@ -124,7 +124,7 @@
 }
 
 .phone-icon {
-    width: 20px;
+    width: 20px; 
     height: 20px;
     stroke: #ffffff; /* สีของไอคอน */
 }
@@ -162,24 +162,77 @@
 /* =================================
    About Section
    ================================= */
-.about-section {
-  display: flex;
-  gap: 40px;
-  align-items: center;
+.team-container {
+    width: 100%;
+    margin-top: 5px; /* ระยะห่างจากส่วน About Us ข้างบน */
+    text-align: center;
+    
+
 }
 
-.about-content h2{
-  text-align: left;
-  ;
-}
-.about-content, .about-image {
-  flex: 1;
+.team-title {
+    font-size: 2em;
+    margin-bottom: 30px;
+    color: #194710;
 }
 
+.team-card-layout {
+    display: flex;
+    justify-content: center;
+    gap: 30px; /* ระยะห่างระหว่าง card */
+    flex-wrap: wrap; /* ทำให้ขึ้นบรรทัดใหม่เมื่อหน้าจอแคบลง */
+}
+
+.team-card {
+    background-color: #597567;
+    border-radius: 60px 20px 60px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 250px; /* ขนาดความกว้างของ Card */
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.team-card:hover {
+    transform: translateY(-5px); /* ทำให้ Card ลอยขึ้นเมื่อเมาส์ชี้ */
+}
+
+.team-member-photo {
+    width: 100%;
+    height: 280px; /* ความสูงของรูปภาพ */
+    object-fit: cover; /* ทำให้รูปพอดีกับกรอบโดยไม่เสียสัดส่วน */
+}
+
+.team-member-name {
+    font-weight: 600;
+    padding: 15px;
+    margin: 0;
+    color: #ffffff;
+}
+
+/* ★ แก้ไข Layout เดิมของ About Section เล็กน้อย ★ */
+.about-grid {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.about-content h2 {
+    text-align: left;
+}
+
+.about-content {
+    flex: 2; 
+    min-width: 300px;
+    
+}
+.about-image {
+    flex: 1;
+    min-width: 500px;
+}
 .about-image img {
-  width: 100%;
-  max-width: 500px;
-  border-radius: 30px;
+    width: 100%;
+    border-radius: 10px;
 }
 
 
@@ -261,7 +314,6 @@
 
 .price-dots {
   flex-grow: 1;
-  border-bottom: 0px dotted #ccc;
   margin: 0 10px;
 }
 
@@ -347,13 +399,6 @@
     height: 100%;
 }
 
-/* --- Responsive for Contact Section --- */
-@media (max-width: 992px) {
-    .contact-grid-3-col {
-        grid-template-columns: 1fr; /* Stacks to a single column on smaller screens */
-    }
-}
-
 /* =================================
    Responsive Rules
    ================================= */
@@ -365,6 +410,9 @@
     grid-column: span 2;
     grid-row: span 1;
     height: 250px;
+  }
+  .contact-grid-3-col {
+    grid-template-columns: 1fr; /* Stacks to a single column on smaller screens */
   }
 }
 
@@ -394,7 +442,7 @@
 }
 
 .hero-contact-line span {
-    font-size: 0.8em;
+    font-size: 0.8em; /* ลดขนาดข้อความบรรทัด */
     font-weight: bold;
     color: #00470a;
 }
@@ -404,12 +452,16 @@
     }
 
 .phone-icon {
-    width: 10px;
+    width: 10px; /* ลดขนาดไอคอน */
     height: 10px;
     stroke: #ffffff; /* สีของไอคอน */
 }
 }
 
+.about-image {
+    flex: 1;
+    min-width: 300px;
+}
 @media (max-width: 600px) {
   .prices-grid-container {
     grid-template-columns: 1fr;
@@ -418,11 +470,4 @@
     grid-column: span 1;
     height: 250px;
   }
-}
-
-/* --- Responsive for Contact Section --- */
-@media (max-width: 992px) {
-    .contact-grid-3-col {
-        grid-template-columns: 1fr; /* Stacks to a single column on smaller screens */
-    }
 }

@@ -20,7 +20,7 @@ function ContactSection() {
                 <div className="contact-column">
                     <h3>Folgen Sie uns</h3>
                     <div className="social-links">
-                        <a href="https://www.facebook.com/share/12F9qCihLp2/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer">
+                        <a href="https://www.facebook.com/profile.php?id=61571793451819" target="_blank" rel="noopener noreferrer">
                             <img src="/images/facebook-icon.png" alt="Facebook" /> Akha Thai Massage
                         </a>
                     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './ServiceManagement.css';
-import { authFetch } from '../api/authFetch'; //
+import { authFetch } from '../api/authFetch';
 
 function ServiceManagementPage() {
     const [services, setServices] = useState([]);
@@ -73,17 +73,35 @@ function ServiceManagementPage() {
         setFormState({ id: null, name: '', duration_minutes: '', price: '' });
     };
 
-    const handleToggleActive = async (id, isActive) => {
+    const handleToggleActive = async (service) => {
         try {
-            await authFetch(`/api/services/${id}`, {
+            await authFetch(`/api/services/${service.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ is_active: !isActive }),
+                body: JSON.stringify({ is_active: !service.is_active }),
             });
             fetchServices();
         } catch (error) {
-            // ★ แก้ไข синтаксисที่ผิดพลาดตรงนี้
             console.error("Failed to toggle status:", error);
+        }
+    };
+
+    const handleDelete = async (serviceId) => {
+        if (window.confirm('Are you sure you want to permanently delete this service? This action cannot be undone.')) {
+            try {
+                const response = await authFetch(`/api/services/${serviceId}/permanent`, {
+                    method: 'DELETE',
+                });
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to delete service');
+                }
+                alert('Service deleted successfully.');
+                fetchServices(); 
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert(`Error: ${error.message}`);
+            }
         }
     };
 
@@ -101,8 +119,8 @@ function ServiceManagementPage() {
                 <input type="number" name="duration_minutes" value={formState.duration_minutes} onChange={handleInputChange} placeholder="Duration (minutes)" required />
                 <input type="number" step="0.01" name="price" value={formState.price} onChange={handleInputChange} placeholder="Price" required />
                 <div className="form-buttons">
-                    <button type="submit">{formState.id ? 'Update Service' : 'Add Service'}</button>
-                    {formState.id && <button type="button" onClick={resetForm} className="cancel-btn">Cancel</button>}
+                    <button type="submit" className="btn btn-add">{formState.id ? 'Update Service' : 'Add Service'}</button>
+                    {formState.id && <button type="button" onClick={resetForm} className="btn-cancel">Cancel</button>}
                 </div>
             </form>
 
@@ -123,12 +141,13 @@ function ServiceManagementPage() {
                             <td>{service.duration_minutes} min</td>
                             <td>{service.price} €</td>
                             <td>
-                                <span className={`status-toggle ${service.is_active ? 'active' : ''}`} onClick={() => handleToggleActive(service.id, service.is_active)}>
+                                <span className={`status-toggle ${service.is_active ? 'active' : ''}`} onClick={() => handleToggleActive(service)}>
                                     {service.is_active ? 'Active' : 'Inactive'}
                                 </span>
                             </td>
                             <td className="actions">
-                                <button className="edit-btn" onClick={() => handleEdit(service)}>Edit</button>
+                                <button className="btn btn-edit" onClick={() => handleEdit(service)}>Edit</button>
+                                <button className="btn btn-delete" onClick={() => handleDelete(service.id)}>Delete</button>
                             </td>
                         </tr>
                     ))}

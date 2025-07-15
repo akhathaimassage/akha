@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import ServiceSelector from './ServiceSelector';
 import TherapistSelector from './TherapistSelector';
 import DateTimePicker from './DateTimePicker';
-import PhoneInput from 'react-phone-number-input';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import './BookingModal.css';
 import dayjs from 'dayjs';
@@ -10,7 +10,6 @@ import { authFetch } from '../api/authFetch';
 
 function AdminBookingModal({ isOpen, onClose, onSave }) {
     const [groupedServices, setGroupedServices] = useState({});
-    const [therapists, setTherapists] = useState([]);
     const [selectedService, setSelectedService] = useState('');
     const [selectedDurationId, setSelectedDurationId] = useState('');
     const [selectedTherapist, setSelectedTherapist] = useState('');
@@ -22,20 +21,33 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
     const [customerEmail, setCustomerEmail] = useState('');
     const [customerPhone, setCustomerPhone] = useState();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isPhoneValid, setIsPhoneValid] = useState(true);
+
+    const [allTherapists, setAllTherapists] = useState([]);
+    const [availableTherapists, setAvailableTherapists] = useState([]);
 
     const isFormValid = useMemo(() => {
         return (
             customerName.trim() !== '' &&
             customerPhone &&
+            isPhoneValid && // เพิ่มการตรวจสอบเบอร์โทรที่นี่
             selectedDurationId &&
             selectedTherapist &&
             selectedSlot &&
             !isSubmitting
         );
-    }, [customerName, customerPhone, selectedDurationId, selectedTherapist, selectedSlot, isSubmitting]);
+    }, [customerName, customerPhone, isPhoneValid, selectedDurationId, selectedTherapist, selectedSlot, isSubmitting]);
 
     useEffect(() => {
         if (isOpen) {
+            // Reset form when opening
+            setCustomerName('');
+            setCustomerEmail('');
+            setCustomerPhone(undefined);
+            setSelectedService('');
+            // ... reset other states as needed ...
+            setIsPhoneValid(true);
+
             const fetchServices = async () => {
                 const res = await authFetch('/api/services');
                 const data = await res.json();
@@ -49,12 +61,27 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
             const fetchTherapists = async () => {
                 const res = await authFetch('/api/therapists');
                 const data = await res.json();
-                setTherapists(data);
+                setAllTherapists(data);
+                setAvailableTherapists(data);
             };
             fetchServices();
             fetchTherapists();
         }
     }, [isOpen]);
+    
+    useEffect(() => {
+        if (!selectedDate || allTherapists.length === 0) {
+            setAvailableTherapists(allTherapists);
+            return;
+        }
+        const selectedDay = dayjs(selectedDate).day();
+    const filtered = allTherapists.filter(therapist => 
+        therapist.work_days && therapist.work_days.includes(selectedDay)
+    );
+            setAvailableTherapists(filtered);
+        setSelectedTherapist(''); // รีเซ็ตพนักงานที่เลือกไว้
+    }, [selectedDate, allTherapists]);
+
     
     useEffect(() => { 
         if (selectedService && groupedServices[selectedService]) { 
@@ -74,9 +101,7 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
             const dateString = dayjs(selectedDate).format('YYYY-MM-DD');
             const url = `/api/availability?date=${dateString}&serviceId=${selectedDurationId}&therapistId=${selectedTherapist}`;
             try {
-                // ▼▼▼  แก้ไขบรรทัดนี้  ▼▼▼
                 const response = await authFetch(url);
-                // ▲▲▲  แก้ไขบรรทัดนี้  ▲▲▲
                 const slots = await response.json();
                 setAvailableSlots(Array.isArray(slots) ? slots : []);
                 setSelectedSlot('');
@@ -90,7 +115,10 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
 
     const handleBookingSubmit = async (event) => {
         event.preventDefault();
-        if (!isFormValid) return;
+        if (!isFormValid) {
+            alert("Please ensure all fields are filled correctly.");
+            return;
+        };
         setIsSubmitting(true);
         
         const bookingDetails = { 
@@ -137,7 +165,21 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
                     <form className="booking-form" onSubmit={handleBookingSubmit}>
                         <div className="form-column">
                             <div className="form-group"><label>Customer Name</label><input type="text" required value={customerName} onChange={e => setCustomerName(e.target.value)} /></div>
-                            <div className="form-group"><label>Customer Phone</label><PhoneInput international defaultCountry="DE" required value={customerPhone} onChange={setCustomerPhone}/></div>
+                            <div className="form-group">
+                                <label>Customer Phone</label>
+                                <PhoneInput
+                                    international
+                                    defaultCountry="DE"
+                                    required
+                                    value={customerPhone}
+                                    onChange={(value) => {
+                                        setCustomerPhone(value);
+                                        setIsPhoneValid(value ? isValidPhoneNumber(value) : true);
+                                    }}
+                                    className={!isPhoneValid ? 'phone-input-error' : ''}
+                                />
+                                {!isPhoneValid && <p className="error-message-small"> * Bitte geben Sie eine gültige Telefonnummer ein.</p>}
+                            </div>
                             <div className="form-group">
                                 <label>E-mail (Optional)</label>
                                 <input 
@@ -149,7 +191,7 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
                             <div className="form-group"><ServiceSelector groupedServices={groupedServices} selectedService={selectedService} onServiceChange={(e) => setSelectedService(e.target.value)} availableDurations={availableDurations} selectedDuration={selectedDurationId} onDurationChange={(e) => setSelectedDurationId(e.target.value)} /></div>
                         </div>
                         <div className="form-column">
-                            <div className="form-group"><TherapistSelector therapists={therapists} selectedTherapist={selectedTherapist} onChange={(e) => setSelectedTherapist(e.target.value)} /></div>
+                            <div className="form-group"><TherapistSelector therapists={availableTherapists} selectedTherapist={selectedTherapist} onChange={(e) => setSelectedTherapist(e.target.value)} /></div>
                             <div className="form-group">
                                 <label htmlFor="timeslot-select">Time Slot</label>
                                 <select id="timeslot-select" value={selectedSlot} onChange={(e) => setSelectedSlot(e.target.value)} disabled={availableSlots.length === 0} required>
