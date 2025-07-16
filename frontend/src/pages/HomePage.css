@@ -120,7 +120,7 @@
 .hero-contact-line span {
     font-size: 1.1em;
     font-weight: bold;
-    color: #00470a;
+    color: #ffffff;
 }
 
 .phone-icon {
@@ -384,7 +384,7 @@
 }
 .qr-code-section img {
     width: 180px;
-    height: 180px;
+    height: 192px;
     border: 0px solid #ddd;
     padding: 5px;
     border-radius: 8px;

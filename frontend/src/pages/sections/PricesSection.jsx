@@ -83,7 +83,7 @@ function PricesSection() {
             {/* ★★★ แก้ไขโครงสร้าง JSX ให้กลับไปเหมือนดีไซน์เดิมของคุณ ★★★ */}
             <div className="prices-grid-container">
                 <div className="price-card-image">
-                    <img src="/images/prices-main.jpg" alt="Massage Details" />
+                    <img src="/images/prices-main.avif" alt="Massage Details" />
                 </div>
                 
                 {Object.values(serviceGroups).map(group => (
