@@ -9,6 +9,13 @@ const nodemailer = require('nodemailer');
 
 const saltRounds = 10;
 const app = express();
+// ★★★ ADD THIS DEBUGGING CODE ★★★
+console.log("--- Verifying Environment Variables ---");
+console.log("Value for DB_DATABASE:", process.env.DB_DATABASE);
+console.log("Value for DATABASE_URL:", process.env.DATABASE_URL);
+console.log("------------------------------------");
+// ★★★ END DEBUGGING CODE ★★★
+
 const port = process.env.PORT || 3001;
 
 // --- Middlewares ---
