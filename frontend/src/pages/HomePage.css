@@ -317,6 +317,34 @@
   margin: 0 10px;
 }
 
+/* =================================
+   Styles for Discounted Price
+   ================================= */
+
+/* --- สไตล์ราคาในสถานะปกติ (การ์ดสีขาว) --- */
+.price-value del {
+  font-size: 0.9em;
+  color: #999; /* สีเทาสำหรับราคาเดิม จะได้ไม่เด่นเกินไป */
+  margin-right: 0.5em;
+  font-weight: normal;
+  transition: color 0.3s ease; /* เพิ่ม transition ให้สีเปลี่ยนอย่างนุ่มนวล */
+}
+
+.price-value strong {
+  font-weight: bold;
+  color: #597567; /* ใช้สีเขียวหลักของเว็บเพื่อให้เด่นบนพื้นหลังสีขาว */
+  transition: color 0.3s ease;
+}
+
+
+/* --- สไตล์ราคาตอนที่เมาส์ชี้บนการ์ด (การ์ดเปลี่ยนเป็นสีเขียว) --- */
+.price-card-service:hover .price-value del {
+  color: rgba(255, 255, 255, 0.6); /* ทำให้ราคาเดิมจางลงไปอีกบนพื้นหลังสีเขียว */
+}
+
+.price-card-service:hover .price-value strong {
+  color: var(--accent-gold); /* ★★★ ใช้สีทอง Accent ของคุณเพื่อเน้นราคาใหม่ตอน hover ★★★ */
+}
 
 .price-card-service:hover {
   background-color: #597567;

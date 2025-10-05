@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../api/authFetch'; // ตรวจสอบ path ให้ถูกต้อง
+// import './PricesSection.css'; // หากมีไฟล์ CSS ให้นำเข้า
 
 // Component ย่อยสำหรับแสดงการ์ดแต่ละบริการ
 const ServiceCard = ({ icon, title, items }) => (
@@ -13,7 +14,15 @@ const ServiceCard = ({ icon, title, items }) => (
                 <li key={itemIndex}>
                     <span>{item.duration}</span>
                     <span className="price-dots"></span>
-                    <span>{item.price}</span>
+                    <span className="price-value"> 
+                      {item.discounted_price ? (
+                        <>
+                          <del>{item.price}</del> → <strong>{item.discounted_price}</strong>
+                        </>
+                      ) : (
+                        item.price
+                      )}
+                    </span>
                 </li>
             ))}
         </ul>
@@ -24,6 +33,16 @@ const ServiceCard = ({ icon, title, items }) => (
 function PricesSection() {
     const [serviceGroups, setServiceGroups] = useState({});
     const [isLoading, setIsLoading] = useState(true);
+
+    // สร้างฟังก์ชัน getIconForService ไว้นอก useEffect เพื่อให้เรียกใช้ได้
+    const getIconForService = (serviceName) => {
+        if (serviceName.includes('Thai-Massage')) return '/images/icon-thai.png';
+        if (serviceName.includes('Thai-Sportmassage')) return '/images/thai-sport.png';
+        if (serviceName.includes('Nacken-Massage')) return '/images/nacken.png';
+        if (serviceName.includes('Aroma-Öl')) return '/images/aroma.png';
+        if (serviceName.includes('4-Hände-Massage')) return '/images/4-hand.png';
+        return '/images/default-icon.png';
+    };
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -41,9 +60,12 @@ function PricesSection() {
                             items: []
                         };
                     }
+                    
+                    // แก้ไขจุดนี้เพื่อส่ง discounted_price ไปยัง Component
                     acc[serviceName].items.push({
                         duration: `${service.duration_minutes} Min`,
-                        price: `${parseInt(service.price)} €`,
+                        price: `${parseFloat(service.price)} €`,
+                        discounted_price: service.discounted_price ? `${parseFloat(service.discounted_price)} €` : null,
                         duration_minutes: service.duration_minutes
                     });
                     return acc;
@@ -64,15 +86,6 @@ function PricesSection() {
         fetchServices();
     }, []);
 
-    const getIconForService = (serviceName) => {
-        if (serviceName.includes('Thai-Massage')) return '/images/icon-thai.png';
-        if (serviceName.includes('Thai-Sportmassage')) return '/images/thai-sport.png';
-        if (serviceName.includes('Nacken-Massage')) return '/images/nacken.png';
-        if (serviceName.includes('Aroma-Öl')) return '/images/aroma.png';
-        if (serviceName.includes('4-Hände-Massage')) return '/images/4-hand.png';
-        return '/images/default-icon.png';
-    };
-
     if (isLoading) {
         return <p>Loading prices...</p>;
     }
@@ -80,7 +93,6 @@ function PricesSection() {
     return (
         <section id="prices" className="page-section">
             <h2 className="section-title">Angebote & Preise</h2>
-            {/* ★★★ แก้ไขโครงสร้าง JSX ให้กลับไปเหมือนดีไซน์เดิมของคุณ ★★★ */}
             <div className="prices-grid-container">
                 <div className="price-card-image">
                     <img src="/images/prices-main.avif" alt="Massage Details" />

@@ -14,6 +14,10 @@ const teamMembers = [
     {
         name: 'Kathin',
         image: '/images/Kathin.jpg'
+    },
+    {
+        name: 'Angie',
+        image: '/images/Angin.jpg'
     }
 ];
 
@@ -30,7 +34,7 @@ function AboutSection() {
                     </p>
                 </div>
                 <div className="about-image">
-                    <img src="/images/abouts.png" alt="Massage Details" />
+                    <img src="/images/abouts.gif" alt="Massage Details" />
                 </div>
             </div>
 
