@@ -48,7 +48,7 @@ const transporter = nodemailer.createTransport({
 
 app.get('/api/services', async (req, res) => {
     try {
-        const { rows } = await db.query("SELECT * FROM services WHERE is_active = TRUE");
+        const { rows } = await db.query("SELECT id, name, duration_minutes, price, discounted_price, is_active FROM services WHERE is_active = TRUE");
         res.status(200).json(rows);
     } catch (error) {
         console.error('❌ Error fetching services:', error);
@@ -58,7 +58,6 @@ app.get('/api/services', async (req, res) => {
 
 app.get('/api/therapists', async (req, res) => {
     try {
-        // 1. ดึงข้อมูลพนักงานที่ยังทำงานอยู่ทั้งหมด
         const therapistsResult = await db.query("SELECT id, full_name FROM therapists WHERE is_active = TRUE");
         const therapists = therapistsResult.rows;
 
@@ -66,19 +65,17 @@ app.get('/api/therapists', async (req, res) => {
             return res.status(200).json([]);
         }
 
-        // 2. ดึงข้อมูลตารางเวลาทั้งหมด
         const schedulesResult = await db.query("SELECT therapist_id, day_of_week FROM therapist_schedules");
         const schedules = schedulesResult.rows;
 
-        // 3. นำข้อมูลตารางเวลาไปใส่ใน object ของพนักงานแต่ละคน
         const therapistsWithSchedules = therapists.map(therapist => {
             const therapistSchedules = schedules
                 .filter(s => s.therapist_id === therapist.id)
-                .map(s => s.day_of_week); // เอาเฉพาะวันในสัปดาห์
+                .map(s => s.day_of_week);
 
             return {
                 ...therapist,
-                work_days: therapistSchedules // เพิ่ม key ใหม่เข้าไป
+                work_days: therapistSchedules
             };
         });
 
@@ -135,21 +132,21 @@ app.post('/api/bookings', async (req, res) => {
         return res.status(400).json({ error: 'Missing required booking information.' });
     }
     
-    // ตรวจสอบว่าสั้นไปหรือไม่
-    if (!customerPhone || customerPhone.length < 10) { // ตัวอย่าง: ตรวจสอบว่าสั้นไปหรือไม่
+    if (!customerPhone || customerPhone.length < 10) {
         return res.status(400).json({ error: 'Invalid phone number format.' });
     }
 
-    
     try {
         await db.query('BEGIN');
 
-        const servicesResult = await db.query('SELECT name, duration_minutes, price FROM services WHERE id = $1', [serviceId]);
+        const servicesResult = await db.query('SELECT name, duration_minutes, price, discounted_price FROM services WHERE id = $1', [serviceId]);
         if (servicesResult.rows.length === 0) throw new Error('Service not found.');
         
-        const { name: serviceName, duration_minutes: durationMinutes, price } = servicesResult.rows[0];
+        const service = servicesResult.rows[0];
+        const { name: serviceName, duration_minutes: durationMinutes } = service;
         
-        // ★ แก้ไขส่วนนี้เป็นแบบไม่สนใจ Timezone ★
+        const priceAtBooking = service.discounted_price || service.price;
+        
         const startDateTime = dayjs(`${date} ${time}`);
         const endDateTime = startDateTime.add(durationMinutes, 'minute');
         const startDateTimeForDB = startDateTime.format('YYYY-MM-DD HH:mm:ss');
@@ -182,8 +179,7 @@ app.post('/api/bookings', async (req, res) => {
             }
         }
         
-
-        await db.query('INSERT INTO bookings (customer_id, therapist_id, service_id, start_datetime, end_datetime, status, price_at_booking) VALUES ($1, $2, $3, $4, $5, $6, $7)', [customerId, therapistId, serviceId, startDateTimeForDB, endDateTimeForDB, 'confirmed', price]);
+        await db.query('INSERT INTO bookings (customer_id, therapist_id, service_id, start_datetime, end_datetime, status, price_at_booking) VALUES ($1, $2, $3, $4, $5, $6, $7)', [customerId, therapistId, serviceId, startDateTimeForDB, endDateTimeForDB, 'confirmed', priceAtBooking]);
         
         const therapistsResult = await db.query('SELECT full_name FROM therapists WHERE id = $1', [therapistId]);
         const therapistName = therapistsResult.rows[0]?.full_name || 'N/A';
@@ -203,15 +199,12 @@ app.post('/api/bookings', async (req, res) => {
             });
         }
         
-        
         res.status(201).json({ success: true, message: 'Booking confirmed successfully!' });
 
     } catch (error) {
-        if(connection) await db.query('ROLLBACK');
+        await db.query('ROLLBACK');
         console.error('❌ Error creating booking:', error);
         res.status(500).json({ error: 'Failed to create booking.' });
-    } finally {
-        
     }
 });
 
@@ -345,20 +338,50 @@ app.get('/api/services/all', verifyToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch services' });
     }
 });
+
 app.post('/api/services', verifyToken, async (req, res) => {
-    const { name, duration_minutes, price } = req.body;
+    const { name, duration_minutes, price, discounted_price } = req.body;
     if (!name || !duration_minutes || !price) return res.status(400).json({ error: 'All fields are required' });
     try {
-        const result = await db.query("INSERT INTO services (name, duration_minutes, price) VALUES ($1, $2, $3) RETURNING id", [name, duration_minutes, price]);
-        res.status(201).json({ id: result.rows[0].id, name, duration_minutes, price, is_active: true });
+        const query = "INSERT INTO services (name, duration_minutes, price, discounted_price) VALUES ($1, $2, $3, $4) RETURNING *";
+        const params = [name, duration_minutes, price, discounted_price || null];
+        const result = await db.query(query, params);
+        res.status(201).json(result.rows[0]);
     } catch (error) { 
         console.error('❌ Error creating service:', error);
         res.status(500).json({ error: 'Failed to create service' }); 
     }
 });
+
+// ★★★ THIS ROUTE IS NOW BEFORE '/:id' ★★★
+app.put('/api/services/bulk-update', verifyToken, async (req, res) => {
+    const { ids, discounted_price } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'Service IDs must be a non-empty array.' });
+    }
+
+    const newPrice = discounted_price === '' || discounted_price === null ? null : parseFloat(discounted_price);
+
+    try {
+        const query = `
+            UPDATE services 
+            SET discounted_price = $1 
+            WHERE id = ANY($2::int[])
+        `;
+        
+        const result = await db.query(query, [newPrice, ids]);
+
+        res.status(200).json({ success: true, message: `${result.rowCount} services updated successfully.` });
+    } catch (error) {
+        console.error('❌ Error during bulk service update:', error);
+        res.status(500).json({ error: 'Failed to perform bulk update.' });
+    }
+});
+
 app.put('/api/services/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
-    const { name, duration_minutes, price, is_active } = req.body;
+    const { name, duration_minutes, price, is_active, discounted_price } = req.body;
     
     const fields = [];
     const params = [];
@@ -368,6 +391,11 @@ app.put('/api/services/:id', verifyToken, async (req, res) => {
     if (duration_minutes !== undefined) { fields.push(`duration_minutes = $${paramIndex++}`); params.push(duration_minutes); }
     if (price !== undefined) { fields.push(`price = $${paramIndex++}`); params.push(price); }
     if (is_active !== undefined) { fields.push(`is_active = $${paramIndex++}`); params.push(is_active); }
+    if (discounted_price !== undefined) { 
+        fields.push(`discounted_price = $${paramIndex++}`); 
+        params.push(discounted_price === '' ? null : discounted_price);
+    }
+
     if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
     
     const query = `UPDATE services SET ${fields.join(', ')} WHERE id = $${paramIndex++}`;
@@ -381,6 +409,7 @@ app.put('/api/services/:id', verifyToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to update service' }); 
     }
 });
+
 app.delete('/api/services/:id', verifyToken, async (req, res) => {
     try {
         await db.query("UPDATE services SET is_active = FALSE WHERE id = $1", [req.params.id]);
@@ -394,7 +423,6 @@ app.delete('/api/services/:id', verifyToken, async (req, res) => {
 app.delete('/api/services/:id/permanent', verifyToken, async (req, res) => {
     const { id } = req.params;
     try {
-        // ตรวจสอบก่อนว่ามี booking ในอนาคตใช้ service นี้หรือไม่ (optional)
         const bookingsResult = await db.query(
             "SELECT id FROM bookings WHERE service_id = $1 AND start_datetime >= CURRENT_DATE", 
             [id]
@@ -406,7 +434,6 @@ app.delete('/api/services/:id/permanent', verifyToken, async (req, res) => {
             });
         }
         
-        // ถ้าไม่มี booking ที่เกี่ยวข้อง ก็ทำการลบ
         await db.query("DELETE FROM services WHERE id = $1", [id]);
         res.status(200).json({ success: true, message: 'Service permanently deleted.' });
 
@@ -453,20 +480,16 @@ app.delete('/api/schedules/:scheduleId', verifyToken, async (req, res) => {
     }
 });
 
-
-
-
-
 // --- Booking Management ---
 app.get('/api/bookings/all', verifyToken, async (req, res) => {
     try {
         const { therapistName, timeFilter } = req.query;
 
         let bookingsQuery = `SELECT b.*, c.full_name as customer_name, c.email, c.phone_number, s.name as service_name, t.full_name as therapist_name 
-                             FROM bookings b
-                             LEFT JOIN customers c ON b.customer_id = c.id
-                             LEFT JOIN services s ON b.service_id = s.id
-                             LEFT JOIN therapists t ON b.therapist_id = t.id`;
+                              FROM bookings b
+                              LEFT JOIN customers c ON b.customer_id = c.id
+                              LEFT JOIN services s ON b.service_id = s.id
+                              LEFT JOIN therapists t ON b.therapist_id = t.id`;
         
         const whereClauses = [];
         const params = [];
