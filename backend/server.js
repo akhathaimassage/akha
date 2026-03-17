@@ -63,9 +63,17 @@ app.get('/api/services', async (req, res) => {
     }
 });
 
+// ★★★ อัปเดตใหม่: ดึงเฉพาะคนที่ไม่ถูกลบ (is_deleted = FALSE), โชว์หน้าเว็บ (show_on_website = TRUE) และเรียงตาม display_order ★★★
 app.get('/api/therapists', async (req, res) => {
     try {
-        const therapistsResult = await db.query("SELECT id, full_name FROM therapists WHERE is_active = TRUE");
+        const therapistsResult = await db.query(`
+            SELECT id, full_name 
+            FROM therapists 
+            WHERE is_active = TRUE 
+              AND is_deleted = FALSE 
+              AND show_on_website = TRUE 
+            ORDER BY display_order ASC, id ASC
+        `);
         const therapists = therapistsResult.rows;
 
         if (therapists.length === 0) {
@@ -268,9 +276,11 @@ app.get('/api/admin/bookings_by_date', verifyToken, async (req, res) => {
 });
 
 // --- Therapist Management ---
+
+// ★★★ อัปเดตใหม่: ดึงเฉพาะคนที่ไม่ถูกลบ (is_deleted = FALSE) ไปโชว์ในตารางแอดมิน และเรียงลำดับ ★★★
 app.get('/api/therapists/all', verifyToken, async (req, res) => {
     try {
-        const { rows } = await db.query("SELECT * FROM therapists ORDER BY id");
+        const { rows } = await db.query("SELECT * FROM therapists WHERE is_deleted = FALSE ORDER BY display_order ASC, id ASC");
         res.status(200).json(rows);
     } catch (error) { 
         console.error('❌ Error fetching all therapists:', error);
@@ -278,22 +288,31 @@ app.get('/api/therapists/all', verifyToken, async (req, res) => {
     }
 });
 
+// ★★★ อัปเดตใหม่: รองรับการรับค่า show_on_website และ display_order ตอนสร้างพนักงานใหม่ ★★★
 app.post('/api/therapists', verifyToken, async (req, res) => {
     try {
-        const { full_name } = req.body;
+        const { full_name, show_on_website = true, display_order = 99 } = req.body;
         if (!full_name) return res.status(400).json({ error: 'Full name is required' });
-        const result = await db.query("INSERT INTO therapists (full_name) VALUES ($1) RETURNING id", [full_name]);
-        res.status(201).json({ id: result.rows[0].id, full_name, is_active: true });
+        
+        const result = await db.query(
+            "INSERT INTO therapists (full_name, show_on_website, display_order) VALUES ($1, $2, $3) RETURNING id", 
+            [full_name, show_on_website, display_order]
+        );
+        res.status(201).json({ id: result.rows[0].id, full_name, is_active: true, show_on_website, display_order });
     } catch (error) { 
         console.error('❌ Error creating therapist:', error);
         res.status(500).json({ error: 'Failed to create therapist' }); 
     }
 });
 
+// ★★★ อัปเดตใหม่: รองรับการอัปเดต show_on_website และ display_order ★★★
 app.put('/api/therapists/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
-    const { full_name, is_active } = req.body;
-    if (full_name === undefined && is_active === undefined) return res.status(400).json({ error: 'No update data provided' });
+    const { full_name, is_active, show_on_website, display_order } = req.body;
+    
+    if (full_name === undefined && is_active === undefined && show_on_website === undefined && display_order === undefined) {
+        return res.status(400).json({ error: 'No update data provided' });
+    }
     
     let query = "UPDATE therapists SET ";
     const params = [];
@@ -308,6 +327,17 @@ app.put('/api/therapists/:id', verifyToken, async (req, res) => {
         query += `is_active = $${paramIndex++}`; 
         params.push(is_active); 
     }
+    if (show_on_website !== undefined) { 
+        if (params.length > 0) query += ", "; 
+        query += `show_on_website = $${paramIndex++}`; 
+        params.push(show_on_website); 
+    }
+    if (display_order !== undefined) { 
+        if (params.length > 0) query += ", "; 
+        query += `display_order = $${paramIndex++}`; 
+        params.push(display_order); 
+    }
+    
     query += ` WHERE id = $${paramIndex++}`;
     params.push(id);
     
@@ -320,6 +350,7 @@ app.put('/api/therapists/:id', verifyToken, async (req, res) => {
     }
 });
 
+// ★★★ อัปเดตใหม่: เปลี่ยนระบบลบ เป็น Soft Delete (ซ่อนข้อมูล ไม่ลบจริง) ★★★
 app.delete('/api/therapists/:id/permanent', verifyToken, async (req, res) => {
     const { id } = req.params;
     try {
@@ -327,8 +358,11 @@ app.delete('/api/therapists/:id/permanent', verifyToken, async (req, res) => {
         if (bookingsResult.rows.length > 0) return res.status(409).json({ error: `Cannot delete. This therapist has ${bookingsResult.rows.length} upcoming booking(s).` });
         
         await db.query("DELETE FROM therapist_schedules WHERE therapist_id = $1", [id]);
-        await db.query("DELETE FROM therapists WHERE id = $1", [id]);
-        res.status(200).json({ success: true, message: 'Therapist permanently deleted.' });
+        
+        // Soft delete: is_deleted = TRUE, is_active = FALSE, show_on_website = FALSE
+        await db.query("UPDATE therapists SET is_deleted = TRUE, is_active = FALSE, show_on_website = FALSE WHERE id = $1", [id]);
+        
+        res.status(200).json({ success: true, message: 'Therapist soft-deleted successfully.' });
     } catch (error) { 
         console.error('❌ Error deleting therapist:', error);
         res.status(500).json({ error: 'Failed to delete therapist' }); 
@@ -360,7 +394,6 @@ app.post('/api/services', verifyToken, async (req, res) => {
     }
 });
 
-// ★★★ THIS ROUTE IS NOW BEFORE '/:id' ★★★
 app.put('/api/services/bulk-update', verifyToken, async (req, res) => {
     const { ids, discounted_price } = req.body;
 
