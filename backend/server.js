@@ -23,7 +23,8 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://akhathaimassage.de',
-    'https://www.akhathaimassage.de'
+    'https://www.akhathaimassage.de',
+    'https://akha.onrender.com'
   ]
 }));
 app.use(express.json());
