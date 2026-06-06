@@ -3,3 +3,4 @@ node_modules
 
 # ไฟล์ข้อมูลลับของ Backend
 backend/.env
+frontend/.sh

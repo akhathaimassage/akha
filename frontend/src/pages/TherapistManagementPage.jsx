@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Admin.css';
 import ScheduleModal from '../components/ScheduleModal';
-import EditTherapistModal from '../components/EditTherapistModal'; // Import the new modal
+import EditTherapistModal from '../components/EditTherapistModal'; 
 import { authFetch } from '../api/authFetch';
 
 function TherapistManagementPage() {
@@ -17,7 +17,9 @@ function TherapistManagementPage() {
         try {
             const response = await authFetch('/api/therapists/all');
             const data = await response.json();
-            setTherapists(data);
+            // เรียงลำดับโชว์ในตารางแอดมินด้วย จะได้ดูง่ายๆ
+            const sortedData = data.sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
+            setTherapists(sortedData);
         } catch (error) {
             console.error("Failed to fetch therapists:", error);
         } finally {
@@ -46,7 +48,8 @@ function TherapistManagementPage() {
             await authFetch('/api/therapists', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ full_name: newTherapistName }),
+                // พนักงานใหม่ให้ค่า default order เป็น 99 เลย
+                body: JSON.stringify({ full_name: newTherapistName, show_on_website: true, display_order: 99 }),
             });
             setNewTherapistName('');
             fetchTherapists();
@@ -110,16 +113,20 @@ function TherapistManagementPage() {
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Order</th>
                             <th>Name</th>
                             <th>Status</th>
+                            <th>Web Visible</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {therapists.map(therapist => (
                             <tr key={therapist.id} className={!therapist.is_active ? 'deactivated' : ''}>
-                                <td data-label="ID">{therapist.id}</td>
+                                {/* 💡 โชว์ตัวเลขลำดับ */}
+                                <td data-label="Order" style={{ fontWeight: 'bold', color: '#555' }}>
+                                    {therapist.display_order || 99}
+                                </td>
                                 <td data-label="Name">{therapist.full_name}</td>
                                 <td data-label="Status">
                                     <span 
@@ -129,8 +136,14 @@ function TherapistManagementPage() {
                                         {therapist.is_active ? 'Active' : 'Inactive'}
                                     </span>
                                 </td>
+                                {/* 💡 โชว์ไอคอนตาเปิด/ปิด ว่าคนนี้โชว์บนเว็บไหม */}
+                                <td data-label="Web Visible">
+                                    <span style={{ fontSize: '1.2rem', color: (therapist.show_on_website !== false) ? 'green' : '#ccc' }}>
+                                        {therapist.show_on_website !== false ? '👁️' : '🚫'}
+                                    </span>
+                                </td>
                                 <td data-label="Actions" className="actions">
-                                    <button className="btn btn-edit" onClick={() => openEditModal(therapist)}>Edit Name</button>
+                                    <button className="btn btn-edit" onClick={() => openEditModal(therapist)}>Edit Profile</button>
                                     <button className="btn" style={{backgroundColor: '#6c757d'}} onClick={() => setEditingScheduleFor(therapist)}>
                                         Schedule
                                     </button>
