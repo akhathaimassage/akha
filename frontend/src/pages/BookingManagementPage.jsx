@@ -10,6 +10,7 @@ import useDebounce from '../hooks/useDebounce';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import AdminBookingModal from '../components/AdminBookingModal';
+import AdminEditBookingModal from '../components/AdminEditBookingModal';
 
 function BookingManagementPage() {
     const [bookings, setBookings] = useState([]);
@@ -17,6 +18,7 @@ function BookingManagementPage() {
     const [therapistFilter, setTherapistFilter] = useState('');
     const [timeFilter, setTimeFilter] = useState('all');
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+    const [editingBooking, setEditingBooking] = useState(null);
 
     const debouncedTherapistFilter = useDebounce(therapistFilter, 500);
 
@@ -156,6 +158,7 @@ function BookingManagementPage() {
                                     <td data-label="Therapist">{booking.therapist_name}</td>
                                     <td data-label="Status">{booking.status}</td>
                                     <td data-label="Actions">
+                                        <button className="btn" style={{backgroundColor: '#ffc107', color: 'black', marginRight: '8px'}} onClick={() => setEditingBooking(booking)}>Edit</button>
                                         <button className="btn btn-delete" onClick={() => handleDelete(booking.id)}>Delete</button>
                                     </td>
                                 </tr>
@@ -174,6 +177,18 @@ function BookingManagementPage() {
                     isOpen={isBookingModalOpen}
                     onClose={() => setIsBookingModalOpen(false)}
                     onSave={handleSaveBooking}
+                />
+            )}
+
+            {editingBooking && (
+                <AdminEditBookingModal 
+                    isOpen={!!editingBooking}
+                    booking={editingBooking}
+                    onClose={() => setEditingBooking(null)}
+                    onSave={() => {
+                        setEditingBooking(null);
+                        fetchBookings();
+                    }}
                 />
             )}
         </div>

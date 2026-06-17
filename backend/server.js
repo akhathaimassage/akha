@@ -571,6 +571,90 @@ app.delete('/api/bookings/:id', verifyToken, async (req, res) => {
     }
 });
 
+app.put('/api/bookings/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    const { 
+        serviceId, 
+        therapistId, 
+        start_datetime, 
+        status, 
+        price_at_booking,
+        customerName,
+        customerPhone,
+        customerEmail
+    } = req.body;
+
+    if (!serviceId || !therapistId || !start_datetime || !customerName || !customerPhone) {
+        return res.status(400).json({ error: 'Missing required booking information.' });
+    }
+
+    try {
+        await db.query('BEGIN');
+
+        // 1. Get customer_id associated with this booking
+        const bookingCheck = await db.query('SELECT customer_id FROM bookings WHERE id = $1', [id]);
+        if (bookingCheck.rows.length === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ error: 'Booking not found.' });
+        }
+        const customerId = bookingCheck.rows[0].customer_id;
+
+        // 2. Update customer details
+        await db.query(
+            'UPDATE customers SET full_name = $1, phone_number = $2, email = $3 WHERE id = $4',
+            [customerName, customerPhone, customerEmail || null, customerId]
+        );
+
+        // 3. Get service duration to compute end_datetime
+        const serviceRes = await db.query('SELECT duration_minutes FROM services WHERE id = $1', [serviceId]);
+        if (serviceRes.rows.length === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ error: 'Service not found.' });
+        }
+        const durationMinutes = serviceRes.rows[0].duration_minutes;
+
+        // Compute end_datetime using dayjs
+        const start = dayjs(start_datetime);
+        const end = start.add(durationMinutes, 'minute');
+        const startStr = start.format('YYYY-MM-DD HH:mm:ss');
+        const endStr = end.format('YYYY-MM-DD HH:mm:ss');
+
+        // 4. Overlap check - only if start_datetime is in the future
+        // Past bookings skip overlap check for easier accounting adjustments.
+        const isFuture = start.isAfter(dayjs());
+        if (isFuture && status !== 'cancelled') {
+            const overlapResult = await db.query(
+                `SELECT id FROM bookings 
+                 WHERE therapist_id = $1 
+                   AND id != $2 
+                   AND status != 'cancelled' 
+                   AND ($3 < end_datetime AND $4 > start_datetime)`,
+                [therapistId, id, startStr, endStr]
+            );
+            if (overlapResult.rows.length > 0) {
+                await db.query('ROLLBACK');
+                return res.status(409).json({ error: 'This time slot is already booked for this therapist.' });
+            }
+        }
+
+        // 5. Update the booking details
+        await db.query(
+            `UPDATE bookings 
+             SET service_id = $1, therapist_id = $2, start_datetime = $3, end_datetime = $4, status = $5, price_at_booking = $6
+             WHERE id = $7`,
+            [serviceId, therapistId, startStr, endStr, status, price_at_booking, id]
+        );
+
+        await db.query('COMMIT');
+        res.status(200).json({ success: true, message: 'Booking updated successfully.' });
+
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error('❌ Error updating booking:', error);
+        res.status(500).json({ error: 'Failed to update booking.' });
+    }
+});
+
 // --- User Management ---
 app.get('/api/users', verifyToken, async (req, res) => {
     try {
