@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 // ★ เพิ่ม 2 บรรทัดนี้เพื่อให้แน่ใจว่าการจัดการเวลาถูกต้อง
 import utc from 'dayjs/plugin/utc'; 
@@ -17,10 +17,38 @@ function BookingManagementPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [therapistFilter, setTherapistFilter] = useState('');
     const [timeFilter, setTimeFilter] = useState('all');
+    const [selectedYear, setSelectedYear] = useState('all');
+    const [selectedMonth, setSelectedMonth] = useState('all');
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState(null);
 
     const debouncedTherapistFilter = useDebounce(therapistFilter, 500);
+
+    const years = useMemo(() => {
+        const currentYear = dayjs().year();
+        const startYear = 2024;
+        const endYear = currentYear + 2;
+        const list = [];
+        for (let y = startYear; y <= endYear; y++) {
+            list.push(y);
+        }
+        return list;
+    }, []);
+
+    const months = [
+        { value: 1, label: 'January (Januar)' },
+        { value: 2, label: 'February (Februar)' },
+        { value: 3, label: 'March (März)' },
+        { value: 4, label: 'April (April)' },
+        { value: 5, label: 'May (Mai)' },
+        { value: 6, label: 'June (Juni)' },
+        { value: 7, label: 'July (Juli)' },
+        { value: 8, label: 'August (August)' },
+        { value: 9, label: 'September (September)' },
+        { value: 10, label: 'October (Oktober)' },
+        { value: 11, label: 'November (November)' },
+        { value: 12, label: 'December (Dezember)' }
+    ];
 
     const fetchBookings = useCallback(async () => {
         setIsLoading(true);
@@ -31,6 +59,12 @@ function BookingManagementPage() {
             }
             if (timeFilter !== 'all') {
                 params.append('timeFilter', timeFilter);
+            }
+            if (selectedYear !== 'all') {
+                params.append('year', selectedYear);
+            }
+            if (selectedMonth !== 'all') {
+                params.append('month', selectedMonth);
             }
             
             const response = await authFetch(`/api/bookings/all?${params.toString()}`);
@@ -45,7 +79,7 @@ function BookingManagementPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [debouncedTherapistFilter, timeFilter]);
+    }, [debouncedTherapistFilter, timeFilter, selectedYear, selectedMonth]);
 
     useEffect(() => {
         fetchBookings();
@@ -117,6 +151,26 @@ function BookingManagementPage() {
                     <option value="all">All Bookings</option>
                     <option value="upcoming">Upcoming & Present</option>
                     <option value="past">Past</option>
+                </select>
+                <select 
+                    className="admin-form-input"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                >
+                    <option value="all">All Years</option>
+                    {years.map(y => (
+                        <option key={y} value={y}>{y}</option>
+                    ))}
+                </select>
+                <select 
+                    className="admin-form-input"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                >
+                    <option value="all">All Months</option>
+                    {months.map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
                 </select>
                 <button 
                     className="btn" 

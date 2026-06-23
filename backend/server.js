@@ -524,7 +524,7 @@ app.delete('/api/schedules/:scheduleId', verifyToken, async (req, res) => {
 // --- Booking Management ---
 app.get('/api/bookings/all', verifyToken, async (req, res) => {
     try {
-        const { therapistName, timeFilter } = req.query;
+        const { therapistName, timeFilter, year, month } = req.query;
 
         let bookingsQuery = `SELECT b.*, c.full_name as customer_name, c.email, c.phone_number, s.name as service_name, t.full_name as therapist_name 
                               FROM bookings b
@@ -545,6 +545,16 @@ app.get('/api/bookings/all', verifyToken, async (req, res) => {
         if (therapistName) {
             whereClauses.push(`t.full_name ILIKE $${paramIndex++}`);
             params.push(`%${therapistName}%`);
+        }
+
+        if (year && year !== 'all') {
+            whereClauses.push(`EXTRACT(YEAR FROM b.start_datetime) = $${paramIndex++}`);
+            params.push(parseInt(year, 10));
+        }
+
+        if (month && month !== 'all') {
+            whereClauses.push(`EXTRACT(MONTH FROM b.start_datetime) = $${paramIndex++}`);
+            params.push(parseInt(month, 10));
         }
 
         if (whereClauses.length > 0) {
