@@ -5,7 +5,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import "../datepicker-override.css";
 
 // Component นี้จะรับหน้าที่แค่แสดงปฏิทินเท่านั้น
-function DateTimePicker({ selectedDate, onDateChange }) {
+function DateTimePicker({ selectedDate, onDateChange, minDate = new Date() }) {
   return (
     <div className="form-group">
       <label>Wenn Sie Freizeit haben</label>
@@ -13,7 +13,7 @@ function DateTimePicker({ selectedDate, onDateChange }) {
         selected={selectedDate}
         onChange={onDateChange}
         inline
-        minDate={new Date()}
+        minDate={minDate}
       />
     </div>
   );

@@ -34,6 +34,7 @@ function AdminEditBookingModal({ isOpen, onClose, onSave, booking }) {
     const [selectedTime, setSelectedTime] = useState('09:00');
     const [status, setStatus] = useState('confirmed');
     const [priceAtBooking, setPriceAtBooking] = useState('');
+    const [isWalkIn, setIsWalkIn] = useState(false); // ★ Add state for Walk-In
     
     const [services, setServices] = useState([]);
     const [therapists, setTherapists] = useState([]);
@@ -44,22 +45,23 @@ function AdminEditBookingModal({ isOpen, onClose, onSave, booking }) {
     const isFormValid = useMemo(() => {
         return (
             customerName.trim() !== '' &&
-            customerPhone &&
-            isPhoneValid &&
+            (isWalkIn || (customerPhone && isPhoneValid)) && // ★ Bypass phone validation if walk-in
             selectedServiceId &&
             selectedTherapistId &&
             selectedTime &&
             priceAtBooking !== '' &&
             !isSubmitting
         );
-    }, [customerName, customerPhone, isPhoneValid, selectedServiceId, selectedTherapistId, selectedTime, priceAtBooking, isSubmitting]);
+    }, [customerName, customerPhone, isPhoneValid, selectedServiceId, selectedTherapistId, selectedTime, priceAtBooking, isSubmitting, isWalkIn]);
 
     // Fetch lists when modal is opened
     useEffect(() => {
         if (isOpen && booking) {
             // Set initial state from the booking object
             setCustomerName(booking.customer_name || '');
-            setCustomerPhone(booking.phone_number || '');
+            const isWalkInPhone = booking.phone_number && booking.phone_number.startsWith('walkin-');
+            setIsWalkIn(!!isWalkInPhone);
+            setCustomerPhone(isWalkInPhone ? '' : (booking.phone_number || ''));
             setCustomerEmail(booking.email || '');
             setSelectedServiceId(booking.service_id || '');
             setSelectedTherapistId(booking.therapist_id || '');
@@ -126,9 +128,9 @@ function AdminEditBookingModal({ isOpen, onClose, onSave, booking }) {
             start_datetime,
             status,
             price_at_booking: parseFloat(priceAtBooking),
-            customerName,
-            customerPhone,
-            customerEmail: customerEmail.trim() === '' ? null : customerEmail
+            customerName: isWalkIn ? 'Walk-in' : customerName,
+            customerPhone: isWalkIn ? (booking.phone_number && booking.phone_number.startsWith('walkin-') ? booking.phone_number : 'walkin-' + Date.now()) : customerPhone,
+            customerEmail: isWalkIn ? null : (customerEmail.trim() === '' ? null : customerEmail)
         };
 
         try {
@@ -172,7 +174,8 @@ function AdminEditBookingModal({ isOpen, onClose, onSave, booking }) {
                                 <input 
                                     type="text" 
                                     required 
-                                    value={customerName} 
+                                    disabled={isWalkIn}
+                                    value={isWalkIn ? 'Walk-in' : customerName} 
                                     onChange={e => setCustomerName(e.target.value)} 
                                 />
                             </div>
@@ -182,22 +185,40 @@ function AdminEditBookingModal({ isOpen, onClose, onSave, booking }) {
                                 <PhoneInput
                                     international
                                     defaultCountry="DE"
-                                    required
-                                    value={customerPhone}
+                                    required={!isWalkIn}
+                                    disabled={isWalkIn}
+                                    value={isWalkIn ? '' : customerPhone}
                                     onChange={(value) => {
                                         setCustomerPhone(value);
                                         setIsPhoneValid(value ? isValidPhoneNumber(value) : true);
                                     }}
-                                    className={!isPhoneValid ? 'phone-input-error' : ''}
+                                    className={!isPhoneValid && !isWalkIn ? 'phone-input-error' : ''}
                                 />
-                                {!isPhoneValid && <p className="error-message-small"> * Bitte geben Sie eine gültige Telefonnummer ein.</p>}
+                                {!isPhoneValid && !isWalkIn && <p className="error-message-small"> * Bitte geben Sie eine gültige Telefonnummer ein.</p>}
+                            </div>
+
+                            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
+                                <input 
+                                    type="checkbox" 
+                                    id="edit-is-walkin" 
+                                    checked={isWalkIn} 
+                                    onChange={e => {
+                                        setIsWalkIn(e.target.checked);
+                                        if (e.target.checked) {
+                                            if (!customerName) setCustomerName('Walk-in');
+                                        }
+                                    }} 
+                                    style={{ width: 'auto', margin: 0 }}
+                                />
+                                <label htmlFor="edit-is-walkin" style={{ margin: 0, cursor: 'pointer', fontWeight: 'normal' }}>Walk-in / No Phone Info</label>
                             </div>
 
                             <div className="form-group">
                                 <label>E-mail (Optional)</label>
                                 <input 
                                     type="email" 
-                                    value={customerEmail} 
+                                    disabled={isWalkIn}
+                                    value={isWalkIn ? '' : customerEmail} 
                                     onChange={e => setCustomerEmail(e.target.value)}
                                 />
                             </div>

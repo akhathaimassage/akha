@@ -20,6 +20,7 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
     const [customerName, setCustomerName] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
     const [customerPhone, setCustomerPhone] = useState();
+    const [isWalkIn, setIsWalkIn] = useState(false); // ★ Add state for Walk-In
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isPhoneValid, setIsPhoneValid] = useState(true);
 
@@ -29,14 +30,13 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
     const isFormValid = useMemo(() => {
         return (
             customerName.trim() !== '' &&
-            customerPhone &&
-            isPhoneValid && // เพิ่มการตรวจสอบเบอร์โทรที่นี่
+            (isWalkIn || (customerPhone && isPhoneValid)) && // ★ Bypass phone validation if walk-in
             selectedDurationId &&
             selectedTherapist &&
             selectedSlot &&
             !isSubmitting
         );
-    }, [customerName, customerPhone, isPhoneValid, selectedDurationId, selectedTherapist, selectedSlot, isSubmitting]);
+    }, [customerName, customerPhone, isPhoneValid, selectedDurationId, selectedTherapist, selectedSlot, isSubmitting, isWalkIn]);
 
     useEffect(() => {
         if (isOpen) {
@@ -44,6 +44,7 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
             setCustomerName('');
             setCustomerEmail('');
             setCustomerPhone(undefined);
+            setIsWalkIn(false); // ★ Reset Walk-In state on open
             setSelectedService('');
             // ... reset other states as needed ...
             setIsPhoneValid(true);
@@ -126,9 +127,9 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
             therapistId: selectedTherapist, 
             date: dayjs(selectedDate).format('YYYY-MM-DD'),
             time: selectedSlot,
-            customerName, 
-            customerEmail, 
-            customerPhone 
+            customerName: isWalkIn ? 'Walk-in' : customerName, 
+            customerEmail: isWalkIn ? '' : customerEmail, 
+            customerPhone: isWalkIn ? ('walkin-' + Date.now()) : customerPhone 
         };
 
         try {
@@ -164,27 +165,53 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
                 <div className="card-body">
                     <form className="booking-form" onSubmit={handleBookingSubmit}>
                         <div className="form-column">
-                            <div className="form-group"><label>Customer Name</label><input type="text" required value={customerName} onChange={e => setCustomerName(e.target.value)} /></div>
+                            <div className="form-group">
+                                <label>Customer Name</label>
+                                <input 
+                                    type="text" 
+                                    required 
+                                    disabled={isWalkIn}
+                                    value={isWalkIn ? 'Walk-in' : customerName} 
+                                    onChange={e => setCustomerName(e.target.value)} 
+                                />
+                            </div>
                             <div className="form-group">
                                 <label>Customer Phone</label>
                                 <PhoneInput
                                     international
                                     defaultCountry="DE"
-                                    required
-                                    value={customerPhone}
+                                    required={!isWalkIn}
+                                    disabled={isWalkIn}
+                                    value={isWalkIn ? '' : customerPhone}
                                     onChange={(value) => {
                                         setCustomerPhone(value);
                                         setIsPhoneValid(value ? isValidPhoneNumber(value) : true);
                                     }}
-                                    className={!isPhoneValid ? 'phone-input-error' : ''}
+                                    className={!isPhoneValid && !isWalkIn ? 'phone-input-error' : ''}
                                 />
-                                {!isPhoneValid && <p className="error-message-small"> * Bitte geben Sie eine gültige Telefonnummer ein.</p>}
+                                {!isPhoneValid && !isWalkIn && <p className="error-message-small"> * Bitte geben Sie eine gültige Telefonnummer ein.</p>}
+                            </div>
+                            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
+                                <input 
+                                    type="checkbox" 
+                                    id="is-walkin" 
+                                    checked={isWalkIn} 
+                                    onChange={e => {
+                                        setIsWalkIn(e.target.checked);
+                                        if (e.target.checked) {
+                                            if (!customerName) setCustomerName('Walk-in');
+                                        }
+                                    }} 
+                                    style={{ width: 'auto', margin: 0 }}
+                                />
+                                <label htmlFor="is-walkin" style={{ margin: 0, cursor: 'pointer', fontWeight: 'normal' }}>Walk-in / No Phone Info</label>
                             </div>
                             <div className="form-group">
                                 <label>E-mail (Optional)</label>
                                 <input 
                                     type="email" 
-                                    value={customerEmail} 
+                                    disabled={isWalkIn}
+                                    value={isWalkIn ? '' : customerEmail} 
                                     onChange={e => setCustomerEmail(e.target.value)}
                                 />
                             </div>
@@ -199,7 +226,7 @@ function AdminBookingModal({ isOpen, onClose, onSave }) {
                                     {availableSlots.map(slot => (<option key={slot} value={slot}>{slot}</option>))}
                                 </select>
                             </div>
-                            <div className="form-group"><DateTimePicker selectedDate={selectedDate} onDateChange={(date) => setSelectedDate(date)} /></div>
+                            <div className="form-group"><DateTimePicker selectedDate={selectedDate} onDateChange={(date) => setSelectedDate(date)} minDate={null} /></div>
                             <button type="submit" className="submit-button" disabled={!isFormValid}>
                                {isSubmitting ? 'Saving...' : 'Save Booking'}
                             </button>
