@@ -22,7 +22,7 @@ export const authFetch = async (url, options = {}) => {
             headers,
         });
 
-        if (response.status === 401 || response.status === 403) {
+        if ((response.status === 401 || response.status === 403) && !url.includes('/api/auth/login')) {
             localStorage.removeItem('token');
             // อาจจะ redirect ไปหน้า login หรือหน้าแรก
             window.location.href = '/'; 

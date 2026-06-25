@@ -117,6 +117,7 @@ function TherapistManagementPage() {
                             <th>Name</th>
                             <th>Status</th>
                             <th>Web Visible</th>
+                            <th>Timesheet</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -140,6 +141,12 @@ function TherapistManagementPage() {
                                 <td data-label="Web Visible">
                                     <span style={{ fontSize: '1.2rem', color: (therapist.show_on_website !== false) ? 'green' : '#ccc' }}>
                                         {therapist.show_on_website !== false ? '👁️' : '🚫'}
+                                    </span>
+                                </td>
+                                {/* 💡 โชว์สถานะ Timesheet */}
+                                <td data-label="Timesheet">
+                                    <span style={{ fontSize: '1rem', color: therapist.require_timesheet ? '#007bff' : '#aaa', fontWeight: therapist.require_timesheet ? 'bold' : 'normal' }}>
+                                        {therapist.require_timesheet ? '⏱️ Yes' : 'No'}
                                     </span>
                                 </td>
                                 <td data-label="Actions" className="actions">

@@ -13,9 +13,9 @@ const connectionConfig = {
   port: process.env.DB_PORT || 5432,
 };
 
-// ถ้าเป็น Production (บน Render) ให้เปิดใช้ SSL
-// ถ้าเป็น Development (บนเครื่องเรา) จะไม่มี property นี้ และ node-postgres จะไม่ใช้ SSL โดยอัตโนมัติ
-if (isProduction) {
+// ถ้าเป็น Production (บน Render) หรือใช้ DB Host ของ Render ให้เปิดใช้ SSL
+const isRender = process.env.DB_HOST && process.env.DB_HOST.includes('render.com');
+if (isProduction || isRender) {
   connectionConfig.ssl = {
     rejectUnauthorized: false
   };

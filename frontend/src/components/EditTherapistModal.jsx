@@ -7,6 +7,7 @@ function EditTherapistModal({ therapist, onClose, onSave }) {
     // 💡 เพิ่ม State ใหม่ 2 ตัว
     const [showOnWebsite, setShowOnWebsite] = useState(true);
     const [displayOrder, setDisplayOrder] = useState(99);
+    const [requireTimesheet, setRequireTimesheet] = useState(false);
 
     useEffect(() => {
         if (therapist) {
@@ -14,6 +15,7 @@ function EditTherapistModal({ therapist, onClose, onSave }) {
             // 💡 ดึงค่าเดิมมาแสดง (ถ้ามี)
             setShowOnWebsite(therapist.show_on_website !== false); // ถ้าเป็น null/undefined ให้ถือว่า true
             setDisplayOrder(therapist.display_order || 99);
+            setRequireTimesheet(therapist.require_timesheet === true);
         }
     }, [therapist]);
 
@@ -25,11 +27,12 @@ function EditTherapistModal({ therapist, onClose, onSave }) {
             const response = await authFetch(`/api/therapists/${therapist.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                // 💡 ส่งค่า 3 อย่างไปหา Backend
+                // 💡 ส่งค่า 4 อย่างไปหา Backend
                 body: JSON.stringify({ 
                     full_name: name,
                     show_on_website: showOnWebsite,
-                    display_order: displayOrder
+                    display_order: displayOrder,
+                    require_timesheet: requireTimesheet
                 }),
             });
             if (!response.ok) throw new Error('Failed to update therapist');
@@ -72,6 +75,20 @@ function EditTherapistModal({ therapist, onClose, onSave }) {
                             />
                             <label htmlFor="show-website" style={{ margin: 0, cursor: 'pointer' }}>
                                 โชว์โปรไฟล์บนหน้าเว็บสาธารณะ (About Us)
+                            </label>
+                        </div>
+
+                        {/* 💡 ส่วนควบคุมความต้องการ Timesheet */}
+                        <div className="form-group" style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <input
+                                id="require-timesheet"
+                                type="checkbox"
+                                checked={requireTimesheet}
+                                onChange={(e) => setRequireTimesheet(e.target.checked)}
+                                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="require-timesheet" style={{ margin: 0, cursor: 'pointer' }}>
+                                Require Timesheet (บันทึกเวลาทำงานตามกฎหมายเยอรมัน - สำหรับ Angestellte)
                             </label>
                         </div>
 

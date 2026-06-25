@@ -6,6 +6,7 @@ import ScheduleGrid from '../components/ScheduleGrid';
 import MobileScheduleView from '../components/MobileScheduleView';
 import dayjs from 'dayjs';
 import { authFetch } from '../api/authFetch';
+import { useAuth } from '../context/AuthContext';
 
 const useWindowSize = () => {
   const [size, setSize] = useState([window.innerWidth, window.innerHeight]);
@@ -18,11 +19,19 @@ const useWindowSize = () => {
 };
 
 function AdminSchedulePage() {
+  const { currentUser } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [bookings, setBookings] = useState([]);
   const [therapists, setTherapists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showOnlyBooked, setShowOnlyBooked] = useState(false); // แก้ไข typo จาก onst เป็น const
+
+  // Enforce staff users cannot view past dates via manual state updates
+  useEffect(() => {
+    if (currentUser?.role === 'staff' && dayjs(selectedDate).isBefore(dayjs(), 'day')) {
+      setSelectedDate(new Date());
+    }
+  }, [selectedDate, currentUser]);
 
   const { width } = useWindowSize();
   const isMobile = width < 768;
@@ -89,6 +98,7 @@ function AdminSchedulePage() {
             selected={selectedDate} 
             onChange={(date) => setSelectedDate(date)} 
             dateFormat="MMMM d, yyyy"
+            minDate={currentUser?.role === 'staff' ? new Date() : null}
           />
         </div>
         
