@@ -1,5 +1,9 @@
 require('dotenv').config();
 const { Pool } = require('pg');
+const pg = require('pg');
+
+// Force pg to return TIMESTAMP (timestamp without time zone) as string to prevent timezone shifts
+pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, (val) => val);
 
 // ตรวจสอบว่านี่เป็น Production Environment หรือไม่ (เช่น บน Render.com)
 const isProduction = process.env.NODE_ENV === 'production';
