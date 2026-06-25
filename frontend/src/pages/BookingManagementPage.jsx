@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
-// ★ เพิ่ม 2 บรรทัดนี้เพื่อให้แน่ใจว่าการจัดการเวลาถูกต้อง
-import utc from 'dayjs/plugin/utc'; 
-dayjs.extend(utc);
+// เวลาในระบบเก็บเป็น naive local time — ไม่ต้องใช้ UTC plugin
 
 import './Admin.css';
 import { authFetch } from '../api/authFetch';
@@ -113,8 +111,7 @@ function BookingManagementPage() {
             startY: 35,
             head: [['Date & Time', 'Customer', 'Phone', 'Service', 'Therapist', 'Status']],
             body: bookings.map(b => [
-                // ★ แก้ไขตรงนี้เพื่อความแน่นอน 100%
-                dayjs.utc(b.start_datetime).format('DD MMM, HH:mm'),
+                dayjs(b.start_datetime).format('DD MMM, HH:mm'),
                 b.customer_name || 'N/A',
                 b.phone_number || 'N/A',
                 b.service_name || 'N/A',
@@ -200,7 +197,7 @@ function BookingManagementPage() {
                         ) : bookings.length > 0 ? (
                             bookings.map(booking => (
                                 <tr key={booking.id}>
-                                    <td data-label="Date & Time">{dayjs.utc(booking.start_datetime).format('DD MMM YY, HH:mm')}</td>
+                                    <td data-label="Date & Time">{dayjs(booking.start_datetime).format('DD MMM YY, HH:mm')}</td>
                                     <td data-label="Customer Info">
                                         <div className="customer-details">
                                             <div style={{ fontWeight: 'bold' }}>{booking.customer_name}</div>

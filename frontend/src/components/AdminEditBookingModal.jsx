@@ -5,10 +5,8 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './BookingModal.css';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { authFetch } from '../api/authFetch';
-
-dayjs.extend(utc);
+// เวลาในระบบเก็บเป็น naive local time — ไม่ต้องใช้ UTC plugin
 
 // Generate standard 30-minute time intervals from 08:00 to 22:00
 const generateTimeSlots = () => {
@@ -68,9 +66,8 @@ function AdminEditBookingModal({ isOpen, onClose, onSave, booking }) {
             setStatus(booking.status || 'confirmed');
             setPriceAtBooking(booking.price_at_booking !== undefined ? booking.price_at_booking : '');
             
-            // Handle UTC/Local date conversions
             if (booking.start_datetime) {
-                const parsedDate = dayjs.utc(booking.start_datetime);
+                const parsedDate = dayjs(booking.start_datetime);
                 setSelectedDate(parsedDate.toDate());
                 setSelectedTime(parsedDate.format('HH:mm'));
             } else {
