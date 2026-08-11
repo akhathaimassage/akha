@@ -10,7 +10,7 @@ function ContactSection() {
                 <div className="contact-column">
                     <h3>Kontaktinformationen</h3>
                     <p>Hauptstraße 31, 79761<br/>Tiengen, Deutschland</p>
-                    <p><strong>Telefon:</strong> <a href="tel:0+49 (0) 151 51 646 555">+49 (0) 151 51 646 555</a></p>
+                    <p><strong>Telefon:</strong> <a href="tel:+4915151646555">+49 (0) 151 51 646 555</a></p>
                     <p><strong>E-Mail:</strong> <a href="mailto:info@akhathaimassage.de">info@akhathaimassage.de</a></p>
                     <h4>Öffnungszeiten</h4>
                     <p>Mo - Sa: 09:00 - 19:00 Uhr<br/>So: Geschlossen</p>
