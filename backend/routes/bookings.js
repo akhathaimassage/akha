@@ -107,19 +107,176 @@ router.post('/api/bookings', async (req, res) => {
         await db.query('COMMIT');
         
         if (customerEmail && customerEmail.trim() !== '') {
+            const formattedDate = dayjs(date).format('DD.MM.YYYY');
+            const mailSubject = `Akha Thai Massage - Buchungsbestätigung: ${serviceName}`;
+
+            const plainText = `Hallo ${customerName},
+
+Vielen Dank für Ihre Buchung bei Akha Thai Massage!
+Ihre Buchung wurde erfolgreich bestätigt.
+
+IHRE BUCHUNGSDETAILS:
+--------------------------------------------------
+• Behandlung: ${serviceName} (${durationMinutes} Min.)
+• Masseurin:  ${therapistName}
+• Datum:      ${formattedDate}
+• Uhrzeit:    ${time} Uhr
+• Preis:      ${priceAtBooking} €
+--------------------------------------------------
+
+STANDORT & ANFAHRT:
+Akha Thai Massage
+Hauptstraße 31, 79761 Tiengen, Deutschland
+Telefon: +49 (0) 7741 9695546
+Mobil / WhatsApp: +49 (0) 151 51 646 555
+E-Mail: info@akhathaimassage.de
+Öffnungszeiten: Mo - Sa: 09:00 - 19:00 Uhr | So: Geschlossen
+
+WICHTIGER HINWEIS:
+Falls Sie Ihren Termin verschieben oder stornieren müssen, bitten wir Sie, uns mindestens 24 Stunden vorher telefonisch oder per WhatsApp zu benachrichtigen.
+
+Wir freuen uns sehr auf Ihren Besuch!
+
+Herzliche Grüße,
+Ihr Akha Thai Massage Team
+https://akhathaimassage.de`;
+
+            const htmlContent = `
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${mailSubject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f1ea; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333333; -webkit-font-smoothing: antialiased;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f1ea; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #1e3a2f; padding: 35px 30px; text-align: center;">
+              <h1 style="margin: 0; font-size: 26px; color: #ffffff; letter-spacing: 1px; font-weight: 600;">Akha Thai Massage</h1>
+              <p style="margin: 6px 0 0 0; color: #d4af37; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Traditionelle Thaimassage in Tiengen</p>
+            </td>
+          </tr>
+
+          <!-- Confirmation Badge -->
+          <tr>
+            <td style="padding: 30px 30px 10px 30px; text-align: center;">
+              <div style="display: inline-block; background-color: #e8f5e9; color: #2e7d32; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid #c8e6c9;">
+                ✓ Buchung bestätigt
+              </div>
+              <h2 style="margin: 18px 0 8px 0; color: #1e3a2f; font-size: 22px;">Vielen Dank, ${customerName}!</h2>
+              <p style="margin: 0; color: #555555; font-size: 15px; line-height: 1.5;">
+                Wir haben Ihren Termin erfolgreich eingetragen. Hier sind Ihre Buchungsdetails:
+              </p>
+            </td>
+          </tr>
+
+          <!-- Booking Details Card -->
+          <tr>
+            <td style="padding: 20px 30px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #faf8f5; border-radius: 12px; border: 1px solid #eee8df; padding: 20px;">
+                <tr>
+                  <td style="padding: 8px 12px; color: #777777; font-size: 14px; border-bottom: 1px solid #eee8df; width: 35%;">Behandlung</td>
+                  <td style="padding: 8px 12px; color: #1e3a2f; font-size: 15px; font-weight: 600; border-bottom: 1px solid #eee8df;">${serviceName} (${durationMinutes} Min.)</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; color: #777777; font-size: 14px; border-bottom: 1px solid #eee8df;">Masseurin</td>
+                  <td style="padding: 8px 12px; color: #1e3a2f; font-size: 15px; font-weight: 600; border-bottom: 1px solid #eee8df;">${therapistName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; color: #777777; font-size: 14px; border-bottom: 1px solid #eee8df;">Datum</td>
+                  <td style="padding: 8px 12px; color: #1e3a2f; font-size: 15px; font-weight: 600; border-bottom: 1px solid #eee8df;">${formattedDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; color: #777777; font-size: 14px; border-bottom: 1px solid #eee8df;">Uhrzeit</td>
+                  <td style="padding: 8px 12px; color: #c58e1b; font-size: 16px; font-weight: 700; border-bottom: 1px solid #eee8df;">${time} Uhr</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 12px; color: #777777; font-size: 14px;">Preis</td>
+                  <td style="padding: 8px 12px; color: #1e3a2f; font-size: 16px; font-weight: 700;">${priceAtBooking} €</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Contact & Location Box -->
+          <tr>
+            <td style="padding: 0 30px 20px 30px;">
+              <div style="background-color: #f1f8f5; border-left: 4px solid #1e3a2f; padding: 16px 20px; border-radius: 6px;">
+                <p style="margin: 0 0 6px 0; color: #1e3a2f; font-weight: 600; font-size: 14px;">📍 Standort & Kontakt:</p>
+                <p style="margin: 0; color: #444444; font-size: 13px; line-height: 1.6;">
+                  Hauptstraße 31, 79761 Tiengen, Deutschland<br>
+                  Telefon: <a href="tel:+4977419695546" style="color: #1e3a2f; font-weight: 600; text-decoration: none;">+49 (0) 7741 9695546</a><br>
+                  WhatsApp: <a href="https://wa.me/4915151646555" style="color: #25d366; font-weight: 600; text-decoration: none;">+49 (0) 151 51 646 555</a><br>
+                  Öffnungszeiten: Mo - Sa: 09:00 - 19:00 Uhr
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Notice / Policy -->
+          <tr>
+            <td style="padding: 0 30px 30px 30px;">
+              <p style="margin: 0; color: #777777; font-size: 12px; line-height: 1.5; text-align: center;">
+                <em>Haben Sie Fragen oder müssen Sie den Termin absagen? Bitte kontaktieren Sie uns rechtzeitig per Telefon oder WhatsApp.</em>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer / Impressum -->
+          <tr>
+            <td style="background-color: #f8f8f8; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0 0 5px 0; color: #888888; font-size: 12px; font-weight: 600;">
+                Akha Thai Massage
+              </p>
+              <p style="margin: 0; color: #999999; font-size: 11px; line-height: 1.4;">
+                Hauptstraße 31, 79761 Waldshut-Tiengen, Deutschland<br>
+                E-Mail: <a href="mailto:info@akhathaimassage.de" style="color: #777777;">info@akhathaimassage.de</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
             const mailOptions = {
                 from: `"Akha Thai Massage" <${process.env.EMAIL_USER}>`,
+                replyTo: `"Akha Thai Massage" <${process.env.EMAIL_USER}>`,
                 to: customerEmail,
-                subject: 'Booking Confirmation',
-                html: `<h1>Thank you, ${customerName}!</h1><p>Your booking is confirmed for ${serviceName} with ${therapistName} on ${dayjs(date).format('DD MMMM YYYY')} at ${time}.</p>`
+                subject: mailSubject,
+                text: plainText,
+                html: htmlContent
             };
+
             transporter.sendMail(mailOptions, (error, info) => {
                 if (error) console.error('❌ Error sending email:', error);
                 else console.log('✅ Email sent:', info.response);
             });
         }
         
-        res.status(201).json({ success: true, message: 'Booking confirmed successfully!' });
+        res.status(201).json({ 
+            success: true, 
+            message: 'Booking confirmed successfully!',
+            booking: {
+                customerName,
+                customerEmail,
+                serviceName,
+                durationMinutes,
+                therapistName,
+                date: dayjs(date).format('DD.MM.YYYY'),
+                time,
+                price: priceAtBooking
+            }
+        });
 
     } catch (error) {
         await db.query('ROLLBACK');

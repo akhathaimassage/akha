@@ -26,6 +26,8 @@ function BookingModal({ isOpen, onClose }) {
     const [allTherapists, setAllTherapists] = useState([]);
     const [availableTherapists, setAvailableTherapists] = useState([]);
 
+    const [bookingSuccessData, setBookingSuccessData] = useState(null);
+
     // ★ 2. แก้ไข useMemo ให้ถูกต้อง
     const isFormValid = useMemo(() => {
         const isEmailValid = customerEmail && customerEmail.includes('@');
@@ -41,9 +43,15 @@ function BookingModal({ isOpen, onClose }) {
         );
     }, [customerName, customerEmail, customerPhone, isPhoneValid, selectedDurationId, selectedTherapist, selectedSlot, isSubmitting]);
     
+    const handleClose = () => {
+        setBookingSuccessData(null);
+        onClose();
+    };
+
     useEffect(() => {
         if (isOpen) {
             // Reset form state when modal opens
+            setBookingSuccessData(null);
             setCustomerName('');
             setCustomerEmail('');
             setCustomerPhone(undefined);
@@ -146,8 +154,19 @@ function BookingModal({ isOpen, onClose }) {
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Failed to book.');
             
-            alert('Booking successful! Thank you.');
-            onClose(); 
+            const serviceObj = availableDurations.find(d => String(d.id) === String(selectedDurationId));
+            const therapistObj = allTherapists.find(t => String(t.id) === String(selectedTherapist));
+
+            setBookingSuccessData({
+                customerName,
+                customerEmail,
+                customerPhone,
+                serviceName: selectedService,
+                durationMinutes: serviceObj?.duration_minutes,
+                therapistName: therapistObj?.full_name || 'Therapeut',
+                date: dayjs(selectedDate).format('DD.MM.YYYY'),
+                time: selectedSlot
+            });
         } catch (error) {
             alert(`Booking failed: ${error.message}`);
         } finally {
@@ -157,12 +176,65 @@ function BookingModal({ isOpen, onClose }) {
     
     if (!isOpen) return null;
 
+    if (bookingSuccessData) {
+        return (
+            <div className="booking-modal-overlay" onClick={handleClose}>
+                <div className="booking-modal-card booking-success-card" onClick={e => e.stopPropagation()}>
+                    <button className="close-button" type="button" onClick={handleClose}>&times;</button>
+                    
+                    <div className="success-header">
+                        <div className="success-icon-badge">✓</div>
+                        <h2>Vielen Dank, {bookingSuccessData.customerName}!</h2>
+                        <p className="success-subtitle">Ihre Buchung war erfolgreich</p>
+                    </div>
+
+                    <div className="success-card-body">
+                        <div className="success-details-box">
+                            <div className="success-detail-row">
+                                <span className="detail-label">Behandlung:</span>
+                                <span className="detail-value">{bookingSuccessData.serviceName} ({bookingSuccessData.durationMinutes} Min.)</span>
+                            </div>
+                            <div className="success-detail-row">
+                                <span className="detail-label">Masseurin:</span>
+                                <span className="detail-value">{bookingSuccessData.therapistName}</span>
+                            </div>
+                            <div className="success-detail-row highlight-row">
+                                <span className="detail-label">Datum & Uhrzeit:</span>
+                                <span className="detail-value highlight-value">{bookingSuccessData.date} um {bookingSuccessData.time} Uhr</span>
+                            </div>
+                        </div>
+
+                        <div className="success-notice-box">
+                            <div className="notice-icon">📧</div>
+                            <div className="notice-text">
+                                <strong>Bestätigungs-E-Mail gesendet</strong>
+                                <p>Wir haben eine Bestätigungs-E-Mail an <u>{bookingSuccessData.customerEmail}</u> gesendet.</p>
+                                <p className="spam-hint">
+                                    💡 <em>Falls Sie keine E-Mail in Ihrem Posteingang finden, überprüfen Sie bitte auch Ihren <strong>Spam- / Junk-Ordner</strong>.</em>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="success-contact-box">
+                            <p className="location-text">📍 <strong>Akha Thai Massage: Hauptstraße 31, 79761 Tiengen</strong></p>
+                            <p className="contact-text">Fragen oder Änderungen? Tel: <strong>+49 (0) 7741 9695546</strong> / WhatsApp <strong>+49 151 51 646 555</strong></p>
+                        </div>
+
+                        <button type="button" className="success-done-btn" onClick={handleClose}>
+                            Schließen / Fertig
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="booking-modal-overlay" onClick={onClose}>
+        <div className="booking-modal-overlay" onClick={handleClose}>
             <div className="booking-modal-card" onClick={e => e.stopPropagation()}>
                 <div className="card-header-image">
                     <img src="/images/akha-logo.png" alt="Logo" className="logo" />
-                    <button className="close-button" type="button" onClick={onClose}>&times;</button>
+                    <button className="close-button" type="button" onClick={handleClose}>&times;</button>
                     <header className="form-header">
                         <h1>Termin Buchen</h1>
                         <p className="subtitle">Bitte Service auswählen</p>
