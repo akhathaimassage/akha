@@ -31,7 +31,7 @@ function AboutSection() {
                     </p>
                 </div>
                 <div className="about-image">
-                    <img src="/images/abouts.gif" alt="Massage Details" />
+                    <img src="/images/abouts.gif?v=2" alt="Massage Details" />
                 </div>
             </div>
 
